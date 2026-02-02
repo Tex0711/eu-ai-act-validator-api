@@ -4,8 +4,8 @@ import type { GatekeeperRequest, GatekeeperResponse } from '@/lib/validation/sch
 import { randomUUID } from 'crypto';
 import { stripPII } from './PIIGateway';
 
-const GEMINI_API_KEYS = (import.meta.env.GEMINI_API_KEY || '').split(',').map((k: string) => k.trim()).filter(Boolean);
-const OPENAI_API_KEY = import.meta.env.OPENAI_API_KEY; // Fallback option
+const GEMINI_API_KEYS = (process.env.GEMINI_API_KEY ?? import.meta.env.GEMINI_API_KEY ?? '').split(',').map((k: string) => k.trim()).filter(Boolean);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? import.meta.env.OPENAI_API_KEY;
 const MAX_RESPONSE_TIME_MS = 800;
 const MAX_GEMINI_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
