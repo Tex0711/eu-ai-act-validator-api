@@ -166,8 +166,11 @@ Workflow: `.github/workflows/ci.yml` (bij elke push/PR op `main` of `master`).
 
 - `API_KEY` – API-key voor de gatekeeper (zelfde waarde als in `.env`)
 - `GEMINI_API_KEY` – Google Gemini API key
+- `SUPABASE_URL` – Supabase project URL (voor compliance test + server)
+- `SUPABASE_SERVICE_ROLE_KEY` – Supabase service role key
+- `OPENAI_API_KEY` – OpenAI API key (voor embeddings in compliance engine)
 
-Zonder deze secrets faalt de accuracy- en loadtest in CI.
+Zonder deze secrets faalt de compliance-, accuracy- of loadtest in CI.
 
 ## 🚢 Deployment
 
