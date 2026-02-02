@@ -1,0 +1,38 @@
+{
+  "info": {
+    "name": "ComplianceCode.eu Gatekeeper API",
+    "description": "ComplianceCode.eu – EU AI Act compliance gatekeeper. Health check and POST /api/v1/gatekeeper. Set variables: baseUrl (e.g. http://localhost:3000), apiKey.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "apiKey", "value": "your_api_key_here" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/health",
+        "description": "Health check for monitoring and load balancers. Returns status, version, DB check, response_time_ms."
+      }
+    },
+    {
+      "name": "Gatekeeper (compliance check)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-api-key", "value": "{{apiKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prompt\": \"Write a short product description for a sustainable water bottle.\",\n  \"context\": { \"department\": \"Marketing\" }\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/gatekeeper",
+        "description": "POST prompt for EU AI Act compliance. Response: decision (ALLOW/DENY/WARNING), reason, article_ref, audit_id. Requires x-api-key."
+      }
+    }
+  ]
+}

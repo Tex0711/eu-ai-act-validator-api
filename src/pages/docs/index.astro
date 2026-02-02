@@ -1,0 +1,135 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const codeRequest = `{
+  "prompt": "Your AI prompt to check",
+  "context": { "user_id": "optional", "department": "optional" }
+}`;
+
+const codeResponse = `{
+  "decision": "ALLOW" | "DENY" | "WARNING",
+  "reason": "Brief explanation",
+  "article_ref": "Article X",
+  "audit_id": "uuid"
+}`;
+---
+
+<Layout title="Documentation">
+  <div class="bg-navy min-h-screen">
+    <main class="container mx-auto px-4 py-12 max-w-4xl">
+      <h1 class="text-3xl font-bold text-slate-light mb-8">Documentation</h1>
+
+      <!-- API Reference -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold text-slate-light mb-4">API Reference</h2>
+        <p class="text-slate mb-4">Endpoint voor compliance-check. Alle requests vereisen <code class="bg-navy-light border border-electric/20 px-1.5 py-0.5 rounded text-electric">x-api-key</code>.</p>
+        <div class="bg-navy-light border border-electric/20 rounded-lg p-6 mb-4 shadow-glow">
+          <code class="text-sm font-mono text-electric">POST /api/v1/gatekeeper</code>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h3 class="font-semibold text-slate-light mb-2">Request</h3>
+            <pre class="bg-navy-light border border-electric/20 p-4 rounded-lg text-sm overflow-x-auto text-electric/90"><code>{codeRequest}</code></pre>
+          </div>
+          <div>
+            <h3 class="font-semibold text-slate-light mb-2">Response</h3>
+            <pre class="bg-navy-light border border-electric/20 p-4 rounded-lg text-sm overflow-x-auto text-electric/90"><code>{codeResponse}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Latency Benchmarks -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold text-slate-light mb-4">Latency Benchmarks</h2>
+        <p class="text-slate mb-4">Impact per check. Rust-engine (Fast Path) voor duidelijke Article 5-gevallen; Deep Path (Gemini) voor nuance.</p>
+        <div class="overflow-x-auto rounded-xl border border-electric/20 shadow-glow">
+          <table class="min-w-full">
+            <thead class="bg-navy-light">
+              <tr>
+                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Scenario</th>
+                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Pad</th>
+                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Typische latency</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-electric/10">
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm text-slate">Duidelijke Article 5 (DENY)</td><td class="px-4 py-3 text-sm text-slate">Fast Path (regels)</td><td class="px-4 py-3 text-sm text-electric">&lt; 50 ms</td></tr>
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm text-slate">WARNING / ALLOW (Gemini)</td><td class="px-4 py-3 text-sm text-slate">Deep Path</td><td class="px-4 py-3 text-sm text-slate">~1,5 – 2,5 s</td></tr>
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm text-slate">Rust-engine alleen (geen LLM)</td><td class="px-4 py-3 text-sm text-slate">~1 µs per chunk</td><td class="px-4 py-3 text-sm text-slate">~90k chunks in 100 ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Security & Sovereignty -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold text-slate-light mb-4">Security &amp; Sovereignty</h2>
+        <p class="text-slate mb-4">Why Rust + EU hosting + statelessness gives you best-in-class protection against US CLOUD Act and data-sovereignty risks.</p>
+        <div class="bg-navy-light border border-electric/20 rounded-xl p-6 shadow-glow space-y-4">
+          <div>
+            <h3 class="font-semibold text-electric mb-2">Rust</h3>
+            <p class="text-sm text-slate">Memory-safe, no runtime GC, predictable latency. The compliance engine runs deterministic rule logic and vector search without third-party LLM calls on the fast path, reducing attack surface and supply-chain risk.</p>
+          </div>
+          <div>
+            <h3 class="font-semibold text-electric mb-2">EU hosting</h3>
+            <p class="text-sm text-slate">All production workloads run in the EU (e.g. Scaleway, OVH). Prompt and audit data never leaves European jurisdiction, so US CLOUD Act requests cannot be served from our infrastructure.</p>
+          </div>
+          <div>
+            <h3 class="font-semibold text-electric mb-2">Statelessness</h3>
+            <p class="text-sm text-slate">We do not persist your prompts. Request in, decision out; optional audit logs are under your control. What we don’t store, we can’t hand over—giving you maximum control over data retention and legal exposure.</p>
+          </div>
+          <p class="text-sm text-slate-dark pt-2">Together, these choices make ComplianceCode a sovereign-first option for teams that need EU AI Act compliance without US cloud or long-term prompt storage.</p>
+        </div>
+      </section>
+
+      <!-- Article Mapping -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold text-slate-light mb-4">Article Mapping</h2>
+        <p class="text-slate mb-4">Welke EU AI Act-artikelen worden momenteel door de engine gedekt.</p>
+        <div class="overflow-x-auto rounded-xl border border-electric/20 shadow-glow">
+          <table class="min-w-full">
+            <thead class="bg-navy-light">
+              <tr>
+                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Artikel</th>
+                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Rol in engine</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-electric/10">
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-mono text-slate-light">Article 5(1)</td><td class="px-4 py-3 text-sm text-slate">Verboden praktijken → DENY (a t/m h: subliminal, exploitatie, social scoring, predictive policing, face scraping, emotion recognition, biometric categorization, real-time biometric ID)</td></tr>
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-mono text-slate-light">Article 6 &amp; Annex III</td><td class="px-4 py-3 text-sm text-slate">High-risk systemen → WARNING (employment, education, credit, insurance, law enforcement, etc.)</td></tr>
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-mono text-slate-light">Article 4</td><td class="px-4 py-3 text-sm text-slate">AI literacy; Judge-prompt kan WARNING geven als compliance/training ontbreekt</td></tr>
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-mono text-slate-light">Article 12</td><td class="px-4 py-3 text-sm text-slate">Audit-ready: onwijzigbare logs (input → redenering → output) via audit_logs</td></tr>
+              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-mono text-slate-light">Article 50</td><td class="px-4 py-3 text-sm text-slate">Transparantie general-purpose AI; Judge gebruikt dit voor edge cases (bijv. chatbot)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Error Handling -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold text-slate-light mb-4">Error Handling</h2>
+        <p class="text-slate mb-4">Wat gebeurt er als de API offline is of een fout retourneert? Kies een beleid dat past bij je risico.</p>
+        <div class="space-y-6">
+          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 shadow-glow">
+            <h3 class="font-semibold text-electric mb-2">Fail-Closed (aanbevolen voor compliance)</h3>
+            <p class="text-sm text-slate mb-2">Als de ComplianceCode API niet bereikbaar is of een 5xx retourneert: <strong>blokkeer</strong> het verzoek naar de AI. De prompt wordt niet doorgestuurd.</p>
+            <p class="text-xs text-slate-dark">Voordeel: geen enkel prompt gaat ongecheckt naar de LLM. Nadeel: bij uitval van onze API valt je AI-verkeer uit.</p>
+          </div>
+          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 shadow-glow">
+            <h3 class="font-semibold text-electric mb-2">Fail-Open</h3>
+            <p class="text-sm text-slate mb-2">Als de ComplianceCode API niet bereikbaar is: <strong>sta</strong> het verzoek toe en stuur door naar de AI. Log wel dat de check is overgeslagen.</p>
+            <p class="text-xs text-slate-dark">Voordeel: beschikbaarheid van AI-verkeer bij onze uitval. Nadeel: prompts kunnen ongecheckt doorgaan; alleen geschikt als je dat risico accepteert.</p>
+          </div>
+          <p class="text-sm text-slate">
+            <strong>429 Too Many Requests:</strong> Rate limit overschreden. Gebruik de <code class="bg-navy-light border border-electric/20 px-1.5 py-0.5 rounded text-electric">Retry-After</code> header en backoff; behandel als tijdelijk.
+          </p>
+        </div>
+      </section>
+
+      <!-- Rate limits -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold text-slate-light mb-4">Rate Limits</h2>
+        <p class="text-slate">Standaard 60 requests per minuut per API key. Bij overschrijding: 429 + <code class="bg-navy-light border border-electric/20 px-1.5 py-0.5 rounded text-electric">Retry-After</code>. Configuratie via <code class="bg-navy-light border border-electric/20 px-1.5 py-0.5 rounded text-electric">RATE_LIMIT_REQUESTS_PER_MINUTE</code> (server-side).</p>
+      </section>
+    </main>
+  </div>
+</Layout>

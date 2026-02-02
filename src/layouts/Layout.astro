@@ -1,0 +1,66 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="ComplianceCode.eu - EU AI Act Compliance Dashboard" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | ComplianceCode.eu</title>
+  </head>
+  <body class="bg-navy text-slate-light antialiased">
+    <nav class="bg-navy/95 border-b border-electric/20 shadow-glow backdrop-blur-sm sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            <div class="flex-shrink-0 flex items-center">
+              <a href="/" class="text-xl font-bold text-electric hover:text-electric-dim transition duration-0">ComplianceCode.eu</a>
+            </div>
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <a href="/" class="border-transparent text-slate hover:text-electric inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-electric/50 text-sm font-medium transition duration-0">Home</a>
+              <a href="/docs" class="border-transparent text-slate hover:text-electric inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-electric/50 text-sm font-medium transition duration-0">Docs</a>
+              <a href="/pioneer" class="border-transparent text-slate hover:text-electric inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-electric/50 text-sm font-medium transition duration-0">Beta Pioneer</a>
+              <a href="/dashboard" class="border-transparent text-slate hover:text-electric inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-electric/50 text-sm font-medium transition duration-0">Dashboard</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <slot />
+    <footer class="bg-navy-light border-t border-electric/20 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div class="text-sm text-slate">
+            <a href="/" class="font-semibold text-electric hover:text-electric-dim transition duration-0">ComplianceCode.eu</a>
+            <span class="mx-2 text-slate-dark">·</span>
+            <a href="/docs" class="hover:text-electric transition duration-0">Docs</a>
+            <span class="mx-2 text-slate-dark">·</span>
+            <a href="/pioneer" class="hover:text-electric transition duration-0">Beta Pioneer</a>
+            <span class="mx-2 text-slate-dark">·</span>
+            <a href="/dashboard" class="hover:text-electric transition duration-0">Dashboard</a>
+          </div>
+          <p class="text-xs text-amber-200 bg-amber-900/30 border border-amber-500/30 rounded px-3 py-2 max-w-xl">
+            <strong>Beta – inspanningsverplichting:</strong> Dit product is in beta. We bieden de API op basis van best effort; geen resultaatgarantie of verzekering tegen boetes. Geschikt voor early adopters en pilots.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  html {
+    font-family: system-ui, ui-sans-serif, sans-serif;
+  }
+  body {
+    min-height: 100vh;
+  }
+</style>

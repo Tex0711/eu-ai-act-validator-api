@@ -1,0 +1,47 @@
+{
+  "target_latency_ms": 100.0,
+  "time_per_chunk_us": 1.1129911032333333,
+  "time_per_chunk_ms": 0.0011129911032333334,
+  "n_max_chunks": 89847,
+  "max_vector_data_bytes": 552019968,
+  "max_vector_data_mb": 526.447265625,
+  "embedding_dim": 1536,
+  "measurements": [
+    {
+      "n_chunks": 100,
+      "total_ms": 50.593416000000005,
+      "avg_ms": 0.101186832,
+      "c_us_per_chunk": 1.01186832
+    },
+    {
+      "n_chunks": 500,
+      "total_ms": 201.59199999999998,
+      "avg_ms": 0.403184,
+      "c_us_per_chunk": 0.806368
+    },
+    {
+      "n_chunks": 1000,
+      "total_ms": 411.290875,
+      "avg_ms": 0.8225817500000001,
+      "c_us_per_chunk": 0.8225817500000001
+    },
+    {
+      "n_chunks": 2000,
+      "total_ms": 1144.128166,
+      "avg_ms": 2.288256332,
+      "c_us_per_chunk": 1.144128166
+    },
+    {
+      "n_chunks": 5000,
+      "total_ms": 3872.919417,
+      "avg_ms": 7.745838834,
+      "c_us_per_chunk": 1.5491677668000001
+    },
+    {
+      "n_chunks": 10000,
+      "total_ms": 6719.1630829999995,
+      "avg_ms": 13.438326166,
+      "c_us_per_chunk": 1.3438326165999999
+    }
+  ]
+}

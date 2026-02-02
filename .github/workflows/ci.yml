@@ -1,0 +1,70 @@
+# CI: compliance check, accuracy test, optioneel load test
+# Vereist repository secrets: API_KEY, GEMINI_API_KEY
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_ENV: test
+  API_KEY: ${{ secrets.API_KEY }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  BASE_URL: http://localhost:3000
+  API_URL: http://localhost:3000/api/v1/gatekeeper
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Compliance test (engine)
+        run: npm run test
+
+      - name: Start server
+        env:
+          RATE_LIMIT_REQUESTS_PER_MINUTE: 5000
+        run: |
+          npm run start &
+          echo "Waiting for server..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Server ready."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Server did not become ready in time."
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Accuracy test (gatekeeper API)
+        run: npm run test:accuracy
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Load test (light)
+        run: k6 run scripts/load-test-light.js

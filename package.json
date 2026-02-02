@@ -1,0 +1,41 @@
+{
+  "name": "eu-ai-act-validator-api",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "node ./dist/server/entry.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "tsx tests/compliance-test.ts",
+    "test:pii": "tsx tests/pii-gateway.test.ts",
+    "test:accuracy": "node scripts/accuracy-test.js",
+    "test-api": "node scripts/test-api.js",
+    "test:load": "dotenv -e .env -- k6 run scripts/load-test.js",
+    "test:load:light": "dotenv -e .env -- k6 run scripts/load-test-light.js",
+    "test-vector": "npx tsx scripts/test-vector-search.ts",
+    "seed": "npx tsx scripts/seed-db.ts"
+  },
+  "dependencies": {
+    "@astrojs/node": "^8.0.0",
+    "@astrojs/tailwind": "^5.1.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "astro": "^4.0.0",
+    "geoip-lite": "^1.4.10",
+    "openai": "^4.20.0",
+    "tailwindcss": "^3.4.0",
+    "zod": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "dotenv": "^16.3.1",
+    "dotenv-cli": "^11.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

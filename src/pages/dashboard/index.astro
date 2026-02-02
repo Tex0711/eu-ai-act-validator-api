@@ -1,0 +1,449 @@
+---
+import { supabase, type AuditLog } from '@/lib/supabase/client';
+import Layout from '../../layouts/Layout.astro';
+
+// Fetch audit logs from Supabase
+let auditLogs: AuditLog[] = [];
+let stats = {
+  totalChecks: 0,
+  violationsBlocked: 0,
+  warnings: 0,
+  allows: 0,
+  healthStatus: 'green' as 'green' | 'amber' | 'red',
+  complianceScore: 0,
+};
+
+try {
+  // Fetch last 50 audit logs
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error('Error fetching audit logs:', error);
+  } else {
+    auditLogs = (data || []) as AuditLog[];
+  }
+
+  // Calculate statistics
+  const now = new Date();
+  const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  
+  const recentLogs = auditLogs.filter(
+    (log) => new Date(log.created_at) >= last24Hours
+  );
+
+  stats.totalChecks = auditLogs.length;
+  stats.violationsBlocked = auditLogs.filter((log) => log.decision === 'DENY').length;
+  stats.warnings = auditLogs.filter((log) => log.decision === 'WARNING').length;
+  stats.allows = auditLogs.filter((log) => log.decision === 'ALLOW').length;
+
+  // Calculate compliance score: (ALLOW + WARNING) / Total * 100
+  if (stats.totalChecks > 0) {
+    stats.complianceScore = Math.round(
+      ((stats.allows + stats.warnings) / stats.totalChecks) * 100
+    );
+  }
+
+  // Determine health status
+  const recentDenies = recentLogs.filter((log) => log.decision === 'DENY').length;
+  const recentWarnings = recentLogs.filter((log) => log.decision === 'WARNING').length;
+  
+  if (recentDenies > 0) {
+    stats.healthStatus = 'red'; // Article 5 violation blocked
+  } else if (recentWarnings > 0) {
+    stats.healthStatus = 'amber'; // Warnings present
+  } else {
+    stats.healthStatus = 'green'; // All clear
+  }
+} catch (error) {
+  console.error('Dashboard error:', error);
+}
+
+// Format relative time
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+}
+
+---
+
+<Layout title="Compliance Dashboard">
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Compliance Dashboard</h1>
+            <p class="mt-1 text-sm text-gray-500">Real-time AI safety monitoring</p>
+          </div>
+          <button
+            onclick="exportToCSV()"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Audit Report (CSV)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-3 space-y-6">
+          <!-- Global Health Status -->
+          <div class={`rounded-lg shadow-sm border-2 p-6 ${
+            stats.healthStatus === 'green' 
+              ? 'bg-green-50 border-green-200' 
+              : stats.healthStatus === 'amber'
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">Global Health Status</h2>
+                <p class="mt-1 text-sm text-gray-600">
+                  {stats.healthStatus === 'green' 
+                    ? '✓ All systems operational. No violations in the last 24 hours.'
+                    : stats.healthStatus === 'amber'
+                    ? '⚠ Warnings detected. Review recommended.'
+                    : '✗ Article 5 violation blocked. Immediate attention required.'}
+                </p>
+              </div>
+              <div class={`w-16 h-16 rounded-full flex items-center justify-center ${
+                stats.healthStatus === 'green'
+                  ? 'bg-green-100'
+                  : stats.healthStatus === 'amber'
+                  ? 'bg-amber-100'
+                  : 'bg-red-100'
+              }`}>
+                {stats.healthStatus === 'green' ? (
+                  <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : stats.healthStatus === 'amber' ? (
+                  <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                ) : (
+                  <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-500">Total Checks</p>
+                  <p class="text-2xl font-semibold text-gray-900">{stats.totalChecks}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
+                  <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-500">Violations Blocked</p>
+                  <p class="text-2xl font-semibold text-gray-900">{stats.violationsBlocked}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
+                  <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-500">Compliance Score</p>
+                  <p class="text-2xl font-semibold text-gray-900">{stats.complianceScore}%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audit Log Table -->
+          <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b">
+              <h2 class="text-lg font-semibold text-gray-900">Recent Audit Logs</h2>
+              <p class="mt-1 text-sm text-gray-500">Last 50 compliance checks</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Decision</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Law Reference</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  {auditLogs.length === 0 ? (
+                    <tr>
+                      <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
+                        No audit logs found. Start using the API to see compliance checks here.
+                      </td>
+                    </tr>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <tr 
+                        key={log.id} 
+                        class="hover:bg-gray-50"
+                        data-response-time={log.response_time_ms}
+                      >
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatRelativeTime(log.created_at)}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            log.decision === 'ALLOW'
+                              ? 'bg-green-100 text-green-800'
+                              : log.decision === 'DENY'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {log.decision}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {log.article_ref || 'N/A'}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
+                          {log.reason}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onclick={`openModal('${log.id}')`}
+                            class="text-blue-600 hover:text-blue-900"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+          <!-- AI Literacy Progress -->
+          <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">AI Literacy Progress</h2>
+            <p class="text-xs text-gray-500 mb-4">Article 4 Compliance</p>
+            
+            <div class="space-y-3 mb-4">
+              {stats.violationsBlocked > 0 && (
+                <div class="flex items-start p-3 bg-red-50 rounded-md">
+                  <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-red-900">Article 5 Violations</p>
+                    <p class="text-xs text-red-700">{stats.violationsBlocked} blocked violation{stats.violationsBlocked !== 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+              )}
+              
+              {stats.warnings > 0 && (
+                <div class="flex items-start p-3 bg-amber-50 rounded-md">
+                  <svg class="w-5 h-5 text-amber-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-amber-900">High-Risk Systems</p>
+                    <p class="text-xs text-amber-700">{stats.warnings} warning{stats.warnings !== 1 ? 's' : ''} detected</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onclick="generateTrainingAlert()"
+              class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Generate Training Alert
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Audit Details -->
+    <div id="auditModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Audit Log Details</h3>
+            <button
+              onclick="closeModal()"
+              class="text-gray-400 hover:text-gray-600"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div id="modalContent" class="space-y-4">
+            <!-- Content will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script define:vars={{ auditLogs: JSON.stringify(auditLogs), stats: JSON.stringify(stats) }} is:inline>
+      const auditLogsData = JSON.parse(auditLogs);
+      const statsData = JSON.parse(stats);
+
+      window.exportToCSV = function() {
+        let csv = 'Timestamp,Decision,Article Reference,Reason,Response Time (ms),Prompt\n';
+        
+        auditLogsData.forEach(log => {
+          const timestamp = new Date(log.created_at).toLocaleString();
+          const decision = log.decision;
+          const articleRef = log.article_ref || 'N/A';
+          const reason = (log.reason || '').replace(/"/g, '""').replace(/\n/g, ' ');
+          const responseTime = log.response_time_ms || 0;
+          const prompt = (log.prompt || '').replace(/"/g, '""').replace(/\n/g, ' ');
+          csv += '"' + timestamp + '","' + decision + '","' + articleRef + '","' + reason + '","' + responseTime + '","' + prompt + '"\n';
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'audit-report-' + new Date().toISOString().split('T')[0] + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      };
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      window.openModal = function(logId) {
+        const log = auditLogsData.find(function(l) { return l.id === logId; });
+        if (!log) return;
+
+        const modal = document.getElementById('auditModal');
+        const content = document.getElementById('modalContent');
+        
+        let decisionBg = 'bg-amber-100 text-amber-800';
+        if (log.decision === 'ALLOW') decisionBg = 'bg-green-100 text-green-800';
+        else if (log.decision === 'DENY') decisionBg = 'bg-red-100 text-red-800';
+
+        const timestamp = escapeHtml(new Date(log.created_at).toLocaleString());
+        const articleRef = escapeHtml(log.article_ref || 'N/A');
+        const responseTime = escapeHtml(String(log.response_time_ms));
+        const prompt = escapeHtml(log.prompt);
+        const reason = escapeHtml(log.reason);
+        const contextJson = log.context ? escapeHtml(JSON.stringify(log.context, null, 2)) : '';
+
+        let html = '<div class="grid grid-cols-2 gap-4">';
+        html += '<div><p class="text-sm font-medium text-gray-500">Timestamp</p>';
+        html += '<p class="mt-1 text-sm text-gray-900">' + timestamp + '</p></div>';
+        html += '<div><p class="text-sm font-medium text-gray-500">Decision</p>';
+        html += '<p class="mt-1"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + decisionBg + '">';
+        html += escapeHtml(log.decision) + '</span></p></div>';
+        html += '<div><p class="text-sm font-medium text-gray-500">Article Reference</p>';
+        html += '<p class="mt-1 text-sm text-gray-900">' + articleRef + '</p></div>';
+        html += '<div><p class="text-sm font-medium text-gray-500">Response Time</p>';
+        html += '<p class="mt-1 text-sm text-gray-900">' + responseTime + 'ms</p></div></div>';
+        html += '<div><p class="text-sm font-medium text-gray-500 mb-2">Prompt</p>';
+        html += '<div class="bg-gray-50 rounded-md p-4"><p class="text-sm text-gray-900 whitespace-pre-wrap">' + prompt + '</p></div></div>';
+        if (log.context) {
+          html += '<div><p class="text-sm font-medium text-gray-500 mb-2">Context</p>';
+          html += '<div class="bg-gray-50 rounded-md p-4"><pre class="text-sm text-gray-900">' + contextJson + '</pre></div></div>';
+        }
+        html += '<div><p class="text-sm font-medium text-gray-500 mb-2">Legal Reasoning</p>';
+        html += '<div class="bg-blue-50 rounded-md p-4"><p class="text-sm text-gray-900 whitespace-pre-wrap">' + reason + '</p></div></div>';
+        
+        content.innerHTML = html;
+        modal.classList.remove('hidden');
+      };
+
+      window.closeModal = function() {
+        document.getElementById('auditModal').classList.add('hidden');
+      };
+
+      window.generateTrainingAlert = function() {
+        const violations = statsData.violationsBlocked;
+        const warnings = statsData.warnings;
+        
+        let message = 'AI Literacy Training Alert\n\n';
+        message += 'Based on recent compliance checks:\n\n';
+        
+        if (violations > 0) {
+          message += '⚠️ ' + violations + ' Article 5 violation(s) blocked. Staff training required on prohibited AI practices.\n';
+        }
+        if (warnings > 0) {
+          message += '⚠️ ' + warnings + ' high-risk system warning(s). Ensure staff understand compliance requirements.\n';
+        }
+        if (violations === 0 && warnings === 0) {
+          message += '✓ No violations detected. Continue maintaining AI literacy standards.\n';
+        }
+        
+        message += '\nRecommended actions:\n';
+        message += '1. Review EU AI Act Article 5 prohibited practices\n';
+        message += '2. Train staff on high-risk AI system requirements\n';
+        message += '3. Implement AI literacy program per Article 4\n';
+        message += '4. Establish compliance review processes';
+        
+        alert(message);
+      };
+
+      // Close modal on outside click
+      window.onclick = function(event) {
+        const modal = document.getElementById('auditModal');
+        if (event.target === modal) {
+          window.closeModal();
+        }
+      };
+    </script>
+  </div>
+</Layout>
