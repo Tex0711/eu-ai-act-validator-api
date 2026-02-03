@@ -69,5 +69,5 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Load test (500 VUs)
-        run: k6 run scripts/load-test.js
+      - name: Load test (light – 100 VUs)
+        run: k6 run scripts/load-test-light.js

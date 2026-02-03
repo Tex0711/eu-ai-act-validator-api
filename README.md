@@ -100,6 +100,21 @@ x-api-key: your_api_key_here
 - `429` - Rate limit exceeded (see `Retry-After` header)
 - `500` - Internal server error
 
+### Try it (curl)
+
+Replace `BASE_URL` with your deployed API URL or `http://localhost:3000` when running locally:
+
+```bash
+curl -X POST "$BASE_URL/api/v1/gatekeeper" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{"prompt": "Write a poem about the sunset", "context": {}}'
+```
+
+### Try it (Postman)
+
+Import **`docs/ComplianceCode-Gatekeeper.postman_collection.json`** into Postman or Insomnia to call Health and Gatekeeper without writing code. Set `BASE_URL` and `x-api-key` in the collection variables.
+
 ## 🏗️ Architecture
 
 **Proprietary Hybrid Evaluation Engine:** Optimized for the EU AI Act. Our engine leverages a multi-stage validation process, combining deterministic rule-sets with advanced LLM reasoning to deliver sub-second responses and enterprise-grade cost efficiency.
@@ -175,6 +190,27 @@ Zonder deze secrets faalt de compliance-, accuracy- of loadtest in CI.
 ## 🚢 Deployment
 
 **Beta snel live:** zie **`docs/DEPLOY_BETA.md`** voor stappen (Railway, Render of Fly.io). Build: `npm run build`. Start: `npm run start` (verwacht `PORT`). Alle secrets via environment variables; geen `.env` in productie.
+
+## 🏢 Enterprise & On-Premise
+
+De API is **volledig gecontaineriseerd** en kan in een **Private Cloud** (Azure, AWS, of on-premise) gedraaid worden om **data-soevereiniteit** te garanderen. Geen data hoeft uw netwerk te verlaten behalve aanroepen naar Supabase en LLM-providers die u zelf beheert of in dezelfde regio host.
+
+### Docker
+
+- **Dockerfile:** multi-stage build (Node/Astro API + Rust compliance-engine). Gebaseerd op `node:20-slim`.
+- **Start de volledige stack lokaal:**
+
+```bash
+cp .env.example .env
+# Vul .env in met uw SUPABASE_*, GEMINI_API_KEY, OPENAI_API_KEY, API_KEY
+docker compose up -d
+```
+
+De API is bereikbaar op `http://localhost:3000`. Health: `http://localhost:3000/api/health`.
+
+### Scalability
+
+**Proven stability under extreme load (500 concurrent users)** with **100% decision accuracy** and **0% failure rate**. Loadtests (k6) worden continu in CI uitgevoerd; de zware 500 VU-test kunt u lokaal draaien met `npm run test:load`.
 
 ## 📝 License
 

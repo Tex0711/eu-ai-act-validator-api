@@ -1,0 +1,17 @@
+# EU AI Act Validator API – full stack for local / on-premise
+# Usage: copy .env.example to .env, fill in secrets, then: docker compose up -d
+
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      # Override in .env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+      # GEMINI_API_KEY, OPENAI_API_KEY, API_KEY, (optional) RATE_LIMIT_REQUESTS_PER_MINUTE
+    restart: unless-stopped
