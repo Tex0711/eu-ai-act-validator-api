@@ -1,10 +1,14 @@
 ---
 export const prerender = false;
+export const dynamic = 'force-dynamic';
 import { getSupabaseClient, type AuditLog } from '@/lib/supabase/client';
 import Layout from '../../layouts/Layout.astro';
 
 // Force fresh data on every request: no CDN or browser cache
 Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+// Cache-bust: unique timestamp so Vercel/edge never treats this as a cached response
+const _requestTime = Date.now();
 
 // Fetch audit logs from Supabase (runs on every request)
 let auditLogs: AuditLog[] = [];
@@ -84,7 +88,7 @@ function formatRelativeTime(dateString: string): string {
 ---
 
 <Layout title="Compliance Dashboard">
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50" data-rendered-at={_requestTime} aria-hidden="true">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

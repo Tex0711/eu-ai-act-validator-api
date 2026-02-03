@@ -31,6 +31,8 @@ import { buildAuditReport } from '@/lib/audit';
  * }
  */
 const GATEKEEPER_PATH = '/api/v1/gatekeeper';
+/** Supabase table name – do not change; must match DB exactly */
+const AUDIT_LOGS_TABLE = 'audit_logs';
 
 function getEnv(name: string): string | undefined {
   return process.env[name] ?? (import.meta.env && (import.meta.env as Record<string, string>)[name]);
@@ -179,21 +181,40 @@ export const POST: APIRoute = async ({ request }) => {
     const responseTime = Date.now() - startTime;
     const promptForAudit = complianceResult.masked_prompt ?? validatedRequest.prompt;
     const auditReport = buildAuditReport(promptForAudit, responseTime);
-    try {
-      await supabase.from('audit_logs').insert({
-        id: complianceResult.audit_id,
-        prompt: auditReport.masked_prompt,
-        context: validatedRequest.context || null,
-        decision: complianceResult.decision,
-        reason: complianceResult.reason,
-        article_ref: complianceResult.article_ref || null,
-        response_time_ms: auditReport.latency_ms,
-        detected_pii_types: auditReport.detected_pii_types.length > 0 ? auditReport.detected_pii_types : null,
+
+    const auditData = {
+      id: complianceResult.audit_id,
+      prompt: auditReport.masked_prompt,
+      context: validatedRequest.context || null,
+      decision: complianceResult.decision,
+      reason: complianceResult.reason,
+      article_ref: complianceResult.article_ref || null,
+      response_time_ms: auditReport.latency_ms,
+      detected_pii_types: auditReport.detected_pii_types.length > 0 ? auditReport.detected_pii_types : null,
+    };
+    console.log('Inserting to DB:', auditData);
+
+    const { error: insertError } = await supabase
+      .from(AUDIT_LOGS_TABLE)
+      .insert(auditData);
+
+    if (insertError) {
+      console.error('[gatekeeper] Audit log insert failed:', insertError.message, insertError.details);
+      logRequestMetric({
+        statusCode: 500,
+        responseTimeMs: responseTime,
+        identifier: getLogIdentifier(apiKey, clientIp),
+        path: GATEKEEPER_PATH,
+        error: `Audit insert: ${insertError.message}`,
       });
-    } catch (auditError) {
-      // Do not block the request if DB is offline or insert fails
-      const auditErrMsg = auditError instanceof Error ? auditError.message : String(auditError);
-      console.error('[gatekeeper] Audit log insert failed (request still succeeds):', auditErrMsg);
+      return new Response(
+        JSON.stringify({
+          error: 'Audit log write failed',
+          message: insertError.message,
+          details: insertError.details ?? undefined,
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     // Step 5: Validate and return response (omit masked_prompt from client response)
