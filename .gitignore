@@ -36,3 +36,8 @@ technical_spec*.html
 # internal documentation (not for public repo)
 internal-docs/
 STYLE_GUIDE.md
+
+# Confidential Intellectual Property
+TECHNICAL_SPECIFICATION_IDEPOSIT*.md
+docs/specs/TECHNICAL_SPECIFICATION_IDEPOSIT*.md
+notities_taco/

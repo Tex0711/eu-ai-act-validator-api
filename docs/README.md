@@ -15,12 +15,10 @@
 - **ComplianceCode-Gatekeeper.postman_collection.json** – Postman-collection (Health + Gatekeeper); import in Postman/Insomnia
 - **TROUBLESHOOTING.md**, **TROUBLESHOOTING_VECTOR_SEARCH.md** – Common issues
 
-## PDF export (i-DEPOT)
+## PDF export
 
 - **PDF_EXPORT_INSTRUCTIONS_EN.md** – English: Pandoc, Markdown PDF, online tools
 - **PDF_EXPORT_INSTRUCTIES.md** – Nederlands
-
-Uses the technical specification in the repo root: `TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md` (or `TECHNICAL_SPECIFICATION_IDEPOSIT.md`).
 
 ## Go-to-market
 
@@ -29,4 +27,3 @@ Uses the technical specification in the repo root: `TECHNICAL_SPECIFICATION_IDEP
 ## Other
 
 - **DASHBOARD_SUMMARY.md**, **IMPLEMENTATION_SUMMARY.md** – Dashboard and implementation notes
-- **specs/** – Technical specification variants (ASCII, LaTeX, etc.) and annex

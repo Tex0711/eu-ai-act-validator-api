@@ -206,8 +206,7 @@ Complete audit trail including:
   - `docs/ComplianceCode-Gatekeeper.postman_collection.json` – Postman collection (Health + Gatekeeper)
   - `docs/QUICK_START.md`, `docs/ENV_SETUP.md`, `docs/OPENAI_SETUP.md` – Setup
   - `docs/TROUBLESHOOTING.md` – Common issues
-  - `docs/PDF_EXPORT_INSTRUCTIONS_EN.md` – PDF export for i-DEPOT
-- **`docs/specs/`** – Technical specification variants and annex
+  - `docs/PDF_EXPORT_INSTRUCTIONS_EN.md` – PDF export instructions
 
 ## 🤖 CI / GitHub Actions
 
