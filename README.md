@@ -15,20 +15,43 @@ High-performance EU AI Act compliance API: real-time risk assessment with Gemini
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 🐳 Quick Start (Docker - Recommended)
 
-- Node.js 18+ 
+The fastest way to get the API running is using Docker:
+
+1. **Setup env:** Copy `.env.example` to `.env` and fill in your keys (Supabase, Gemini, OpenAI, API_KEY).
+2. **Launch:**
+
+```bash
+docker compose up --build -d
+```
+
+3. **Verify:**
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+The API is available at `http://localhost:3000/api/v1/gatekeeper`. For more Docker options (e.g. Enterprise & On-Premise), see [Enterprise & On-Premise](#-enterprise--on-premise) below.
+
+### 🛠️ Manual Installation (Development)
+
+For developers who prefer to run the stack locally without Docker:
+
+#### Prerequisites
+
+- Node.js 18+
 - Supabase account with pgvector extension enabled
 - Google Gemini API key
 - OpenAI API key (for embeddings)
 
-### Installation
+#### Installation
 
 ```bash
 npm install
 ```
 
-### Environment Setup
+#### Environment Setup
 
 Copy `.env.example` to `.env` and fill in your credentials:
 
@@ -43,7 +66,7 @@ Required environment variables:
 - `OPENAI_API_KEY` - OpenAI API key for text embeddings
 - `API_KEY` - Your custom API key for endpoint authentication
 
-### Database Setup
+#### Database Setup
 
 1. Run the migration in your Supabase SQL editor:
 
@@ -54,7 +77,7 @@ Required environment variables:
 
 2. Seed the database with EU AI Act content (see `scripts/seed-db.ts` for example)
 
-### Development
+#### Development
 
 ```bash
 npm run dev
