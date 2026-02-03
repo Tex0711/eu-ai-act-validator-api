@@ -6,6 +6,13 @@ High-performance EU AI Act compliance API: real-time risk assessment with Gemini
 
 *Repository: `eu-ai-act-validator-api` · Product: ComplianceCode.eu*
 
+## ✨ Key Features
+
+- **🚀 Ultra-Low Latency:** High-performance Rust engine performs core compliance checks in <50ms, making it suitable for real-time API gateways.
+- **Privacy-by-design:** PII stripped before processing; only anonymized placeholders used for compliance checks. No PII stored.
+- **Accuracy:** Validated against 36+ EU AI Act scenarios; safety-first defaults (DENY/WARNING on errors).
+- **Enterprise-ready:** Fully containerized; run in your Private Cloud (Azure, AWS) or on-premise for data sovereignty.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -135,6 +142,15 @@ Import **`docs/ComplianceCode-Gatekeeper.postman_collection.json`** into Postman
 | Full LLM evaluation  | 1.5–2.5 s       | When needed  |
 | Accuracy (36 scenarios) | 100%          | See `npm run test:accuracy` |
 
+## 🎯 Technical Highlights
+
+### Performance & Scalability
+
+ComplianceCode.eu uses a hybrid architecture. While LLMs provide reasoning, our dedicated Rust Engine handles the heavy lifting.
+
+- **Speed:** <50ms per check (core compliance path).
+- **Scale:** Stress-tested for 500+ concurrent users with 0% failure rate.
+
 ## 📊 Database Schema
 
 ### compliance_knowledge
@@ -161,7 +177,6 @@ Complete audit trail including:
 
 ## 📚 Documentation
 
-- **`STYLE_GUIDE.md`** – Sovereign Trust visual identity (colors, typography, design principles) for website and marketing.
 - **`docs/`** – Setup, troubleshooting, testing, deployment:
   - `docs/ACCURACY_TEST_LLM.md` – 36-scenario accuracy test (target 100%)
   - `docs/STRESS_TEST_K6.md` – k6 load test (phases, thresholds), Postman collection
@@ -173,44 +188,44 @@ Complete audit trail including:
 
 ## 🤖 CI / GitHub Actions
 
-Workflow: `.github/workflows/ci.yml` (bij elke push/PR op `main` of `master`).
+Workflow: `.github/workflows/ci.yml` (on every push/PR to `main` or `master`).
 
-**Stappen:** build → compliance test (engine) → start server → accuracy test (gatekeeper API) → load test (light).
+**Steps:** build → compliance test (engine) → start server → accuracy test (gatekeeper API) → load test (light).
 
 **Repository secrets (Settings → Secrets and variables → Actions):**
 
-- `API_KEY` – API-key voor de gatekeeper (zelfde waarde als in `.env`)
+- `API_KEY` – API key for the gatekeeper (same value as in `.env`)
 - `GEMINI_API_KEY` – Google Gemini API key
-- `SUPABASE_URL` – Supabase project URL (voor compliance test + server)
+- `SUPABASE_URL` – Supabase project URL (for compliance test + server)
 - `SUPABASE_SERVICE_ROLE_KEY` – Supabase service role key
-- `OPENAI_API_KEY` – OpenAI API key (voor embeddings in compliance engine)
+- `OPENAI_API_KEY` – OpenAI API key (for embeddings in compliance engine)
 
-Zonder deze secrets faalt de compliance-, accuracy- of loadtest in CI.
+Without these secrets, the compliance, accuracy, or load test will fail in CI.
 
 ## 🚢 Deployment
 
-**Beta snel live:** zie **`docs/DEPLOY_BETA.md`** voor stappen (Railway, Render of Fly.io). Build: `npm run build`. Start: `npm run start` (verwacht `PORT`). Alle secrets via environment variables; geen `.env` in productie.
+**Beta quick deploy:** see **`docs/DEPLOY_BETA.md`** for steps (Railway, Render, or Fly.io). Build: `npm run build`. Start: `npm run start` (expects `PORT`). All secrets via environment variables; no `.env` in production.
 
 ## 🏢 Enterprise & On-Premise
 
-De API is **volledig gecontaineriseerd** en kan in een **Private Cloud** (Azure, AWS, of on-premise) gedraaid worden om **data-soevereiniteit** te garanderen. Geen data hoeft uw netwerk te verlaten behalve aanroepen naar Supabase en LLM-providers die u zelf beheert of in dezelfde regio host.
+The API is **fully containerized** and can run in a **Private Cloud** (Azure, AWS, or on-premise) to guarantee **data sovereignty**. No data has to leave your network except calls to Supabase and LLM providers that you manage or host in the same region.
 
 ### Docker
 
-- **Dockerfile:** multi-stage build (Node/Astro API + Rust compliance-engine). Gebaseerd op `node:20-slim`.
-- **Start de volledige stack lokaal:**
+- **Dockerfile:** multi-stage build (Node/Astro API + Rust compliance engine). Based on `node:20-slim`.
+- **Start the full stack locally:**
 
 ```bash
 cp .env.example .env
-# Vul .env in met uw SUPABASE_*, GEMINI_API_KEY, OPENAI_API_KEY, API_KEY
+# Fill in .env with your SUPABASE_*, GEMINI_API_KEY, OPENAI_API_KEY, API_KEY
 docker compose up -d
 ```
 
-De API is bereikbaar op `http://localhost:3000`. Health: `http://localhost:3000/api/health`.
+The API is available at `http://localhost:3000`. Health: `http://localhost:3000/api/health`.
 
 ### Scalability
 
-**Proven stability under extreme load (500 concurrent users)** with **100% decision accuracy** and **0% failure rate**. Loadtests (k6) worden continu in CI uitgevoerd; de zware 500 VU-test kunt u lokaal draaien met `npm run test:load`.
+**Proven stability under extreme load (500 concurrent users)** with **100% decision accuracy** and **0% failure rate**. Load tests (k6) run continuously in CI; you can run the heavy 500 VU test locally with `npm run test:load`.
 
 ## 📝 License
 

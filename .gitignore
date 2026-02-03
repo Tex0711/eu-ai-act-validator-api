@@ -35,3 +35,4 @@ technical_spec*.html
 
 # internal documentation (not for public repo)
 internal-docs/
+STYLE_GUIDE.md
