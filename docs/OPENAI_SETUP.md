@@ -86,7 +86,7 @@ Na het invullen zou je .env er zo uit moeten zien:
 
 ```bash
 # Supabase Configuration
-SUPABASE_URL=https://jftihgaeacugdhspshyp.supabase.co
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Gemini API (for compliance evaluation)

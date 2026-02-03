@@ -50,7 +50,7 @@ Als dit 3 resultaten geeft met similarity percentages, werkt alles!
 ## Stap 4: Test de API
 
 ```bash
-export API_KEY=a7f3b9c2d4e6f8a1b3c5d7e9f0a2b4c6d8e0f2a4b6c8d0e2f4a6b8c0d2e4f6a8
+export API_KEY=your_api_key_here
 npm run test-api
 ```
 
