@@ -164,6 +164,19 @@ Import **`docs/ComplianceCode-Gatekeeper.postman_collection.json`** into Postman
 
 ## 🏗️ Architecture
 
+```mermaid
+graph TD
+    User((User/App)) -->|Prompt| Gatekeeper[API Gatekeeper]
+    Gatekeeper -->|Step 1| PII[PII Stripper - Rust Engine]
+    PII -->|Masked Prompt| Logic{Decision Logic}
+    Logic -->|Deterministic| Rust[Fast-path Compliance - Rust]
+    Logic -->|Nuanced| Gemini[Deep Analysis - Gemini 2 Flash]
+    Rust -->|ALLOW/DENY| Result
+    Gemini -->|ALLOW/DENY/WARN| Result
+    Result --> Audit[Audit Log - GDPR Proof]
+    Result --> User
+```
+
 **Proprietary Hybrid Evaluation Engine:** Optimized for the EU AI Act. Our engine leverages a multi-stage validation process, combining deterministic rule-sets with advanced LLM reasoning to deliver sub-second responses and enterprise-grade cost efficiency.
 
 **Benefits:**
