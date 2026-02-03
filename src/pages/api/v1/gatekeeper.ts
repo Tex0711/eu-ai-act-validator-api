@@ -32,6 +32,10 @@ import { buildAuditReport } from '@/lib/audit';
  */
 const GATEKEEPER_PATH = '/api/v1/gatekeeper';
 
+function getEnv(name: string): string | undefined {
+  return process.env[name] ?? (import.meta.env && (import.meta.env as Record<string, string>)[name]);
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const startTime = Date.now();
   const clientIp =
@@ -40,6 +44,35 @@ export const POST: APIRoute = async ({ request }) => {
     null;
 
   try {
+    // Step 0: Check required environment variables (debug-friendly)
+    const requiredEnv = {
+      GEMINI_API_KEY: getEnv('GEMINI_API_KEY'),
+      SUPABASE_URL: getEnv('SUPABASE_URL'),
+      SUPABASE_SERVICE_ROLE_KEY: getEnv('SUPABASE_SERVICE_ROLE_KEY'),
+    };
+    const missing = Object.entries(requiredEnv)
+      .filter(([, v]) => !v || v.trim() === '')
+      .map(([k]) => k);
+    if (missing.length > 0) {
+      const msg = `Missing required env: ${missing.join(', ')}`;
+      console.error(`[gatekeeper] ${msg}`);
+      logRequestMetric({
+        statusCode: 503,
+        responseTimeMs: Date.now() - startTime,
+        identifier: 'env-check',
+        path: GATEKEEPER_PATH,
+        error: msg,
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Server misconfiguration',
+          message: msg,
+          missing,
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Step 1: Validate API key
     const apiKey = request.headers.get('x-api-key');
     const expectedApiKey = process.env.API_KEY ?? import.meta.env.API_KEY;
@@ -158,8 +191,9 @@ export const POST: APIRoute = async ({ request }) => {
         detected_pii_types: auditReport.detected_pii_types.length > 0 ? auditReport.detected_pii_types : null,
       });
     } catch (auditError) {
-      // Log error but don't fail the request
-      console.error('Failed to write audit log:', auditError instanceof Error ? auditError.message : String(auditError));
+      // Do not block the request if DB is offline or insert fails
+      const auditErrMsg = auditError instanceof Error ? auditError.message : String(auditError);
+      console.error('[gatekeeper] Audit log insert failed (request still succeeds):', auditErrMsg);
     }
 
     // Step 5: Validate and return response (omit masked_prompt from client response)
@@ -211,9 +245,11 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
   } catch (error) {
-    // Use error.message to avoid Node.js inspection crash on Gemini error objects
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error('Gatekeeper API error:', errMsg);
+    const err = error instanceof Error ? error : new Error(String(error));
+    const errMsg = err.message;
+    const errStack = err.stack ?? '(no stack)';
+    console.error('[gatekeeper] POST error:', errMsg);
+    console.error('[gatekeeper] stack:', errStack);
     const responseTime = Date.now() - startTime;
     logRequestMetric({
       statusCode: 500,
@@ -226,7 +262,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: errMsg,
       }),
       {
         status: 500,
