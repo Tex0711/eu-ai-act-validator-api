@@ -1,20 +1,23 @@
 {
   "name": "eu-ai-act-validator-api",
   "type": "module",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "license": "MIT",
   "scripts": {
     "dev": "astro dev",
     "start": "node ./dist/server/entry.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "tsx tests/compliance-test.ts",
+    "test": "dotenv -e .env -- tsx tests/compliance-test.ts",
     "test:pii": "tsx tests/pii-gateway.test.ts",
+    "test:pii:international": "tsx tests/international-stress-test.ts",
     "test:accuracy": "node scripts/accuracy-test.js",
     "test-api": "node scripts/test-api.js",
     "test:load": "dotenv -e .env -- k6 run scripts/load-test.js",
     "test:load:light": "dotenv -e .env -- k6 run scripts/load-test-light.js",
     "test-vector": "npx tsx scripts/test-vector-search.ts",
+    "benchmark": "tsx scripts/benchmark-performance.ts",
     "seed": "npx tsx scripts/seed-db.ts"
   },
   "dependencies": {

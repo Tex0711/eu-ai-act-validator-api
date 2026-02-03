@@ -13,7 +13,7 @@ export const GET: APIRoute = async () => {
   const health = {
     status: 'ok' as 'ok' | 'degraded' | 'error',
     timestamp: new Date().toISOString(),
-    version: '0.1.0',
+    version: '1.0.0',
     uptime: process.uptime(),
     checks: {
       database: { status: 'unknown' as string, latency_ms: 0 },

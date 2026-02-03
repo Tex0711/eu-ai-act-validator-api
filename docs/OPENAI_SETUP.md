@@ -87,13 +87,13 @@ Na het invullen zou je .env er zo uit moeten zien:
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # Gemini API (for compliance evaluation)
 GEMINI_API_KEY=your_gemini_api_key
 
 # OpenAI API (for embeddings - recommended for MVP)
-OPENAI_API_KEY=sk-proj-abc123def456ghi789jkl012mno345pqr  ← Je echte key hier
+OPENAI_API_KEY=your_openai_api_key
 
 # API Security
 API_KEY=your_api_key_here

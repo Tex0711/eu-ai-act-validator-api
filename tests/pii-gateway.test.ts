@@ -30,10 +30,22 @@ assertNotIncludes(stripPII('Bel 06-12345678'), '06-12345678', 'Raw phone must no
 // --- Phone Int
 assertIncludes(stripPII('Call +1 555 123 4567'), '[PHONE]', 'Intl phone should be replaced');
 
-// --- BSN (Dutch Burgerservicenummer)
-assertIncludes(stripPII('BSN: 123456782'), '[BSN]', 'BSN should be replaced');
-assertIncludes(stripPII('Burgerservicenummer 1234 56 78'), '[BSN]', 'BSN with spaces (8 digits) should be replaced');
+// --- BSN (Dutch Burgerservicenummer) → [ID]
+assertIncludes(stripPII('BSN: 123456782'), '[ID]', 'BSN should be replaced');
+assertIncludes(stripPII('Burgerservicenummer 1234 56 78'), '[ID]', 'BSN with spaces (8 digits) should be replaced');
 assertNotIncludes(stripPII('BSN 123456782'), '123456782', 'Raw BSN must not appear');
+
+// --- UK NINO
+assertIncludes(stripPII('NINO JG103759A required'), '[ID]', 'UK NINO should be replaced');
+assertNotIncludes(stripPII('NINO JG103759A'), 'JG103759A', 'Raw NINO must not appear');
+
+// --- DE Steuer-ID
+assertIncludes(stripPII('Steuer-ID 316/5756/0463'), '[ID]', 'German Steuer-ID should be replaced');
+assertNotIncludes(stripPII('Steuer-ID 316/5756/0463'), '316/5756/0463', 'Raw Steuer-ID must not appear');
+
+// --- IT Codice Fiscale
+assertIncludes(stripPII('Codice fiscale RSSMRA85M01H501Z'), '[ID]', 'Italian Codice Fiscale should be replaced');
+assertNotIncludes(stripPII('CF RSSMRA85M01H501Z'), 'RSSMRA85M01H501Z', 'Raw Codice Fiscale must not appear');
 
 // --- NL postal code
 assertIncludes(stripPII('Woonachtig 1234 AB Amsterdam'), '[ADDRESS]', 'NL postal 1234 AB should be replaced');
@@ -48,7 +60,7 @@ assertNotIncludes(stripPII('Contact Mr. John Smith'), 'John Smith', 'Raw name mu
 const withPII = 'Dear Mr. John Smith, your BSN 123456782 and email john@example.com are required.';
 const stripped = stripPII(withPII);
 assertIncludes(stripped, '[NAME]', 'Name placeholder');
-assertIncludes(stripped, '[BSN]', 'BSN placeholder');
+assertIncludes(stripped, '[ID]', 'BSN/ID placeholder');
 assertIncludes(stripped, '[EMAIL]', 'Email placeholder');
 assertIncludes(stripped, 'Dear', 'Sentence start preserved');
 assertIncludes(stripped, 'required', 'Sentence end preserved');

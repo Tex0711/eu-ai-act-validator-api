@@ -1,14 +1,11 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase, type ComplianceKnowledge } from '@/lib/supabase/client';
 import type { GatekeeperRequest, GatekeeperResponse } from '@/lib/validation/schemas';
 import { randomUUID } from 'crypto';
 import { stripPII } from './PIIGateway';
+import { getLLMProvider, type LLMProvider } from '@/lib/llm';
 
-const GEMINI_API_KEYS = (process.env.GEMINI_API_KEY ?? import.meta.env.GEMINI_API_KEY ?? '').split(',').map((k: string) => k.trim()).filter(Boolean);
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? import.meta.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? (typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as Record<string, string>).OPENAI_API_KEY : undefined);
 const MAX_RESPONSE_TIME_MS = 800;
-const MAX_GEMINI_RETRIES = 3;
-const INITIAL_RETRY_DELAY_MS = 1000;
 const EMBEDDING_CACHE_SIZE = 100;
 const EMBEDDING_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -19,23 +16,16 @@ const TOP_K = 3;
 /** Fast Path DENY only when best Article 5 match is above this (avoids false DENY on e.g. "Python function", "chatbot", "face unlock"). */
 const FAST_PATH_DENY_MIN_SIMILARITY = 0.7;
 
-if (GEMINI_API_KEYS.length === 0) {
-  throw new Error('Missing GEMINI_API_KEY environment variable');
-}
-
-console.log(`[Gemini] Loaded ${GEMINI_API_KEYS.length} API key(s)`);
-
-// Create clients for all API keys
-const geminiClients = GEMINI_API_KEYS.map((key: string) => new GoogleGenerativeAI(key));
-
 /**
- * ComplianceEngine - The core "Legal Guardrail" service
- * 
- * This service:
- * 1. Generates embeddings for user prompts
- * 2. Performs semantic search on EU AI Act articles
- * 3. Uses Gemini 1.5 Pro to evaluate compliance
- * 4. Returns structured decisions with audit trails
+ * ComplianceEngine – core "Legal Guardrail" service for EU AI Act compliance.
+ *
+ * 1. Strips PII from the prompt (EU/US in v1.0; see INTERNATIONAL_ROADMAP.md).
+ * 2. Generates embeddings for the masked prompt.
+ * 3. Performs semantic search on EU AI Act articles (Supabase/pgvector).
+ * 4. Uses LLM (Gemini or Mock via LLM_PROVIDER) to evaluate compliance.
+ * 5. Returns structured decisions with audit_id and masked_prompt.
+ *
+ * @module ComplianceEngine
  */
 /**
  * Simple LRU cache entry for embeddings
@@ -56,20 +46,12 @@ interface ASCFResult {
 }
 
 export class ComplianceEngine {
-  // Rotate through API keys to distribute rate limits
-  private currentKeyIndex = 0;
-  
+  private llmProvider: LLMProvider;
   // Simple LRU cache for embeddings (reduces OpenAI API calls for repeated prompts)
   private embeddingCache = new Map<string, CacheEntry>();
-  
-  /**
-   * Get the current Gemini model, rotating keys on each call
-   */
-  private getModel() {
-    const client = geminiClients[this.currentKeyIndex];
-    // Rotate to next key for next call
-    this.currentKeyIndex = (this.currentKeyIndex + 1) % geminiClients.length;
-    return client.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+  constructor(provider?: LLMProvider) {
+    this.llmProvider = provider ?? getLLMProvider();
   }
 
   /**
@@ -306,84 +288,7 @@ export class ComplianceEngine {
   }
 
   /**
-   * Call Gemini with retry logic and exponential backoff
-   */
-  private async callGeminiWithRetry(prompt: string): Promise<string> {
-    let lastError: Error | null = null;
-    
-    for (let attempt = 1; attempt <= MAX_GEMINI_RETRIES; attempt++) {
-      try {
-        // Get model with rotating API key
-        const model = this.getModel();
-        const keyNum = ((this.currentKeyIndex - 1 + geminiClients.length) % geminiClients.length) + 1;
-        console.log(`[Gemini] Attempt ${attempt} using API key ${keyNum}/${geminiClients.length}`);
-        
-        const result = await model.generateContent(prompt);
-        console.log('[Gemini] Got result, extracting response...');
-        
-        const response = result.response;
-        console.log('[Gemini] Response exists:', !!response);
-        
-        if (!response) {
-          throw new Error('No response from Gemini');
-        }
-        
-        // Try to get text - handle different response formats
-        let text: string;
-        try {
-          text = response.text();
-        } catch (textError) {
-          console.error('[Gemini] Error getting text:', textError instanceof Error ? textError.message : String(textError));
-          // Try alternative method
-          const candidates = response.candidates;
-          if (candidates && candidates.length > 0 && candidates[0].content) {
-            text = candidates[0].content.parts?.map((p: any) => p.text).join('') || '';
-          } else {
-            throw new Error('Could not extract text from Gemini response');
-          }
-        }
-        
-        console.log('[Gemini] Got text, length:', text?.length || 0);
-        
-        if (!text) {
-          throw new Error('Empty response from Gemini');
-        }
-        
-        return text;
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        const errorMessage = lastError.message.toLowerCase();
-        
-        // Check if it's a rate limit error (429) - worth retrying
-        const isRateLimitError = errorMessage.includes('429') || 
-                                  errorMessage.includes('quota') ||
-                                  errorMessage.includes('rate');
-        
-        // Check if it's a transient error worth retrying
-        const isTransientError = errorMessage.includes('fetch') ||
-                                  errorMessage.includes('network') ||
-                                  errorMessage.includes('timeout');
-        
-        if (!isRateLimitError && !isTransientError) {
-          // Don't retry for non-transient errors (e.g., invalid API key, model not found)
-          console.error(`[Gemini] Non-retryable error: ${lastError.message.substring(0, 100)}`);
-          throw lastError;
-        }
-        
-        if (attempt < MAX_GEMINI_RETRIES) {
-          // Exponential backoff: 1s, 2s, 4s...
-          const delayMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-          console.warn(`[Gemini] Attempt ${attempt} failed, retrying in ${delayMs}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-      }
-    }
-    
-    throw lastError || new Error('Gemini call failed after retries');
-  }
-
-  /**
-   * Construct the "Judge Prompt" for Gemini evaluation
+   * Construct the "Judge Prompt" for LLM evaluation
    */
   private buildJudgePrompt(
     userPrompt: string,
@@ -463,34 +368,12 @@ Now evaluate the user prompt:`;
   }
 
   /**
-   * Parse Gemini's JSON response safely
-   */
-  private parseGeminiResponse(text: string): Partial<GatekeeperResponse> {
-    try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-      const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
-      const parsed = JSON.parse(jsonText.trim());
-
-      return {
-        decision: parsed.decision || 'WARNING',
-        reason: parsed.reason || 'Unable to determine compliance status',
-        article_ref: parsed.article_ref || undefined,
-      };
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('Failed to parse Gemini response:', errorMsg);
-      console.error('Raw text was:', text.substring(0, 500));
-      return {
-        decision: 'WARNING',
-        reason: 'Failed to parse compliance evaluation. Please review manually.',
-      };
-    }
-  }
-
-  /**
-   * Main evaluation method - checks prompt against EU AI Act.
+   * Main evaluation: strip PII, embed, search EU AI Act articles, optionally call LLM, return decision.
    * PII is stripped first; masked prompt is used for search, LLM, and audit (data minimization).
+   * EU & US PII fully supported in v1.0 (see INTERNATIONAL_ROADMAP.md).
+   *
+   * @param request - Gatekeeper request with prompt and optional context.
+   * @returns Decision (ALLOW/DENY/WARNING), reason, article_ref, audit_id, masked_prompt.
    */
   async evaluate(request: GatekeeperRequest): Promise<GatekeeperResponse & { masked_prompt?: string }> {
     const startTime = Date.now();
@@ -543,20 +426,18 @@ Now evaluate the user prompt:`;
         }
         console.log(`[ComplianceEngine] Deep Path: ASCF DENY but low Article 5 similarity (${(article5Similarity * 100).toFixed(0)}% < ${FAST_PATH_DENY_MIN_SIMILARITY * 100}%) – calling Gemini for disambiguation`);
       } else {
-        // Deep Path: WARNING or ALLOW – use Gemini for contextual nuance
-        console.log(`[ComplianceEngine] Deep Path: ASCF ${ascf.decision} – calling Gemini for evaluation`);
+        console.log(`[ComplianceEngine] Deep Path: ASCF ${ascf.decision} – calling LLM (${this.llmProvider.name}) for evaluation`);
       }
       const judgePrompt = this.buildJudgePrompt(maskedPrompt, searchResults);
-      const responseText = await this.callGeminiWithRetry(judgePrompt);
-
-      // Step 5: Parse and validate response
-      const parsed = this.parseGeminiResponse(responseText);
-      const articleRef = parsed.article_ref ?? searchResults[0]?.metadata?.article_ref;
+      const llmResult = await this.llmProvider.evaluate({
+        judgePrompt,
+        articleRefFallback: searchResults[0]?.metadata?.article_ref,
+      });
 
       const response: GatekeeperResponse & { masked_prompt?: string } = {
-        decision: (parsed.decision as 'ALLOW' | 'DENY' | 'WARNING') ?? 'WARNING',
-        reason: parsed.reason ?? 'Compliance evaluation completed',
-        article_ref: articleRef,
+        decision: llmResult.decision,
+        reason: llmResult.reason,
+        article_ref: llmResult.article_ref,
         audit_id: auditId,
         masked_prompt: maskedPrompt,
       };

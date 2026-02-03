@@ -13,6 +13,23 @@ High-performance EU AI Act compliance API: real-time risk assessment with Gemini
 - **Accuracy:** Validated against 36+ EU AI Act scenarios; safety-first defaults (DENY/WARNING on errors).
 - **Enterprise-ready:** Fully containerized; run in your Private Cloud (Azure, AWS) or on-premise for data sovereignty.
 
+### 🛡️ Built for Digital Sovereignty (NL/EU)
+
+While many governance platforms offer high-level dashboards, ComplianceCode provides the technical enforcement needed for true digital sovereignty.
+
+- **Local Expertise:** Deeply optimized for Dutch and European PII patterns (BSN, Codice Fiscale, Steuer-ID, etc.).
+- **In-Process Security:** Sensitive data is stripped before it ever leaves your infrastructure, ensuring compliance with the highest standards of the Dutch Data Protection Authority (Autoriteit Persoonsgegevens / AP).
+- **The Perfect Companion:** Designed to work alongside governance tools like VerifyWise. They handle the policy; we handle the real-time execution at <50ms latency.
+
+### 🏢 Enterprise Readiness
+
+- **Model-Agnostic Architecture:** The compliance engine uses an `LLMProvider` interface so you can switch between Gemini (default), Mock (local/testing without API costs), or future providers (e.g. Claude, local models) via the `LLM_PROVIDER` environment variable.
+- **Detailed Audit Trails:** Every request produces an audit report with `timestamp`, `detected_pii_types` (e.g. `['EMAIL','ID']`), `latency_ms`, and the **masked prompt** only. The original prompt is never stored (GDPR-compliant). Optional `GET /api/v1/health` reports API status, active LLM provider, and database connectivity.
+
+### Supported Regions
+
+Primary support for **EU & US**. International roadmap (APAC/LATAM) is in progress. See [docs/INTERNATIONAL_ROADMAP.md](docs/INTERNATIONAL_ROADMAP.md) and `npm run test:pii:international` for current coverage and gaps.
+
 ## 🚀 Quick Start
 
 ### 🐳 Quick Start (Docker - Recommended)
@@ -151,7 +168,7 @@ Import **`docs/ComplianceCode-Gatekeeper.postman_collection.json`** into Postman
 
 **Benefits:**
 
-- **Speed** – Many requests complete in under a second; full evaluation typically 1.5–2.5s where nuance is required.
+- **Speed** – Many requests complete in under a second; full evaluation typically 2–4 s where nuance is required.
 - **Cost efficiency** – Intelligent routing minimizes LLM calls without sacrificing accuracy.
 - **Accuracy** – Validated against 36+ EU AI Act scenarios; safety-first defaults (DENY/WARNING on errors).
 
@@ -159,10 +176,24 @@ Import **`docs/ComplianceCode-Gatekeeper.postman_collection.json`** into Postman
 
 ### Performance (benchmarks)
 
+**PII stripping: zero-latency privacy.** For enterprise, the key metric is **P99 &lt; 1 ms**—even on a 2000-word, PII-dense prompt. The privacy layer adds no perceptible delay (an eye blink is 100–400 ms; our heavy-load PII check is ~0.32 ms).
+
+PII stripper (100 consecutive calls, `npm run benchmark`). *Units in milliseconds (ms) for clarity:*
+
+| Scenario       | Words | AVG (ms) | P99 (ms) |
+|----------------|-------|----------|----------|
+| Baseline       | 50    | 0.007    | 0.014    |
+| Heavy Load (PII-dense) | 2000 | 0.32     | 0.40     |
+
+*Same in µs: Baseline ~7 µs / ~14 µs; Heavy ~320 µs / ~400 µs.*
+
+Full pipeline:
+
 | Scenario              | Typical latency | Notes        |
 |-----------------------|-----------------|-------------|
+| PII stripping         | &lt; 1 ms        | P99 &lt; 1 ms even at 2000 words; effectively zero-latency |
 | Deterministic checks  | &lt; 800 ms     | Rule-based  |
-| Full LLM evaluation  | 1.5–2.5 s       | When needed  |
+| Full LLM evaluation  | typically 2–4 s | When needed (Gemini) |
 | Accuracy (36 scenarios) | 100%          | See `npm run test:accuracy` |
 
 ## 🎯 Technical Highlights
@@ -171,8 +202,9 @@ Import **`docs/ComplianceCode-Gatekeeper.postman_collection.json`** into Postman
 
 ComplianceCode.eu uses a hybrid architecture. While LLMs provide reasoning, our dedicated Rust Engine handles the heavy lifting.
 
-- **Speed:** <50ms per check (core compliance path).
-- **Scale:** Stress-tested for 500+ concurrent users with 0% failure rate.
+- **Zero-latency privacy:** PII stripping is P99 &lt; 1 ms (0.32 ms typical for 2000 words). No reason to skip it—it doesn’t slow the system down.
+- **Speed:** &lt;50 ms per check (core compliance path).
+- **Scale:** Stress-tested for 500+ concurrent users with 0% failure rate; PII stripping uses minimal CPU, so thousands of requests/sec are feasible on modest hardware.
 
 ## 📊 Database Schema
 
@@ -201,6 +233,9 @@ Complete audit trail including:
 ## 📚 Documentation
 
 - **`docs/`** – Setup, troubleshooting, testing, deployment:
+  - `docs/INTERNATIONAL_ROADMAP.md` – v1.0 EU/US full; v1.1 APAC/LATAM planned
+  - `docs/PII_PRIVACY_WORKFLOW.md` – PII stripping order, placeholders, EU/US patterns
+  - `CHANGELOG.md` – Release notes (v1.0.0)
   - `docs/ACCURACY_TEST_LLM.md` – 36-scenario accuracy test (target 100%)
   - `docs/STRESS_TEST_K6.md` – k6 load test (phases, thresholds), Postman collection
   - `docs/ComplianceCode-Gatekeeper.postman_collection.json` – Postman collection (Health + Gatekeeper)
@@ -239,7 +274,7 @@ The API is **fully containerized** and can run in a **Private Cloud** (Azure, AW
 
 ```bash
 cp .env.example .env
-# Fill in .env with your SUPABASE_*, GEMINI_API_KEY, OPENAI_API_KEY, API_KEY
+# Set SUPABASE_*, GEMINI_API_KEY, OPENAI_API_KEY, and API_KEY in .env
 docker compose up -d
 ```
 
@@ -249,7 +284,7 @@ The API is available at `http://localhost:3000`. Health: `http://localhost:3000/
 
 **Proven stability under extreme load (500 concurrent users)** with **100% decision accuracy** and **0% failure rate**. Load tests (k6) run continuously in CI; you can run the heavy 500 VU test locally with `npm run test:load`.
 
-## 📝 License
+## License
 
-Proprietary - ComplianceCode.eu
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

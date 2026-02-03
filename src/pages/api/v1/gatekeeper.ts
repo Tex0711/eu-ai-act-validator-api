@@ -9,6 +9,7 @@ import {
   rateLimitIdentifier,
 } from '@/lib/rate-limit';
 import { logRequestMetric } from '@/lib/metrics';
+import { buildAuditReport } from '@/lib/audit';
 
 /**
  * POST /api/v1/gatekeeper
@@ -141,18 +142,20 @@ export const POST: APIRoute = async ({ request }) => {
     // Step 3: Run compliance evaluation (PII stripped inside engine; masked prompt used for search, LLM, audit)
     const complianceResult = await complianceEngine.evaluate(validatedRequest);
 
-    // Step 4: Log to audit trail (data minimization: only masked prompt stored)
+    // Step 4: Audit report (GDPR: never store original prompt; only masked_prompt + detected_pii_types)
     const responseTime = Date.now() - startTime;
     const promptForAudit = complianceResult.masked_prompt ?? validatedRequest.prompt;
+    const auditReport = buildAuditReport(promptForAudit, responseTime);
     try {
       await supabase.from('audit_logs').insert({
         id: complianceResult.audit_id,
-        prompt: promptForAudit,
+        prompt: auditReport.masked_prompt,
         context: validatedRequest.context || null,
         decision: complianceResult.decision,
         reason: complianceResult.reason,
         article_ref: complianceResult.article_ref || null,
-        response_time_ms: responseTime,
+        response_time_ms: auditReport.latency_ms,
+        detected_pii_types: auditReport.detected_pii_types.length > 0 ? auditReport.detected_pii_types : null,
       });
     } catch (auditError) {
       // Log error but don't fail the request

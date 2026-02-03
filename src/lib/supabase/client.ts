@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL ?? import.meta.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL ?? (typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as Record<string, string>).SUPABASE_URL : undefined);
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? (typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as Record<string, string>).SUPABASE_SERVICE_ROLE_KEY : undefined);
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
@@ -36,4 +36,5 @@ export interface AuditLog {
   article_ref?: string;
   created_at: string;
   response_time_ms: number;
+  detected_pii_types?: string[];
 }

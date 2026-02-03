@@ -1,8 +1,8 @@
 /**
- * API Test Script voor ComplianceCode.eu
- * 
- * Gebruik: node scripts/test-api.js
- * Of: npm run test-api (na toevoegen aan package.json)
+ * API test script for ComplianceCode.eu gatekeeper endpoint.
+ *
+ * Usage: API_KEY=your_key node scripts/test-api.js  (or npm run test-api)
+ * Requires API_KEY in environment for real requests.
  */
 
 const API_URL = process.env.API_URL || 'http://localhost:3000/api/v1/gatekeeper';
