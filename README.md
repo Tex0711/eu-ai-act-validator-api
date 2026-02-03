@@ -209,6 +209,8 @@ Full pipeline:
 | Full LLM evaluation  | typically 2–4 s | When needed (Gemini) |
 | Accuracy (36 scenarios) | 100%          | See `npm run test:accuracy` |
 
+> ⚡ **Technical Insight:** The privacy layer is implemented as a zero-allocation Rust engine, ensuring that PII stripping happens in the microsecond range, making it practically invisible to the end-user.
+
 ## 🎯 Technical Highlights
 
 ### Performance & Scalability
