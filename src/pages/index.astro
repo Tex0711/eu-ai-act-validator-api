@@ -1,256 +1,235 @@
 ---
 import Layout from '../layouts/Layout.astro';
 
-const codeProxy = `# Nginx: location voor AI-verkeer
-location /v1/chat/completions {
-  auth_request /compliance-check;
-  proxy_pass https://api.openai.com;
-}
-location = /compliance-check {
-  internal;
-  proxy_pass https://your-app.com/api/v1/gatekeeper;
-  proxy_pass_request_body on;
-  proxy_set_header x-api-key $api_key;
+const gatekeeperRequest = `POST /api/v1/gatekeeper
+Content-Type: application/json
+x-api-key: <your-api-key>
+
+{
+  "prompt": "Summarize this contract for our legal team.",
+  "context": { "department": "legal" }
 }`;
 
-const codeGateway = `plugins:
-  - name: http-request
-    config:
-      method: POST
-      url: https://your-app.com/api/v1/gatekeeper
-      headers: { x-api-key: $(env.API_KEY) }
-      body: '{"prompt": "$(request.body.prompt)"}'`;
+const gatekeeperResponse = `{
+  "decision": "ALLOW",
+  "reason": "No prohibited practices identified.",
+  "article_ref": null,
+  "audit_id": "550e8400-e29b-41d4-a716-446655440000"
+}`;
+
+const mermaidDiagram = `graph TD
+  User((User/App)) -->|Prompt| Gatekeeper[API Gatekeeper]
+  Gatekeeper -->|Step 1| PII[PII Stripper - Rust Engine]
+  PII -->|Masked Prompt| Logic{Decision Logic}
+  Logic -->|Deterministic| Rust[Fast-path Compliance - Rust]
+  Logic -->|Nuanced| LLM[Deep Analysis - LLM]
+  Rust -->|ALLOW/DENY| Result
+  LLM -->|ALLOW/DENY/WARN| Result
+  Result --> Audit[Audit Log - GDPR Proof]
+  Result --> User`;
 ---
 
-<Layout title="EU AI Act Compliance API">
-  <div class="bg-navy min-h-screen">
-    <main class="container mx-auto px-4 py-12 max-w-5xl">
-      <!-- Hero -->
-      <section class="text-center mb-20">
-        <span class="inline-block px-3 py-1 text-xs font-semibold text-electric bg-electric/10 border border-electric/30 rounded-full mb-6">Beta – Early Access</span>
-        <h1 class="text-4xl sm:text-5xl font-bold text-slate-light mb-4">
-          Real-time AI Governance in <span class="text-electric">&lt;50ms</span>
+<Layout title="ComplianceCode.eu | High-performance EU AI Act Compliance Firewall">
+  <div class="bg-cyber-bg min-h-screen text-slate-200">
+    <!-- Hero: grid overlay, scanline, neon glow, glassmorphism -->
+    <section class="relative overflow-hidden border-b border-cyber-neon/30">
+      <div class="absolute inset-0 bg-[linear-gradient(rgba(0,243,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,243,255,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem]" aria-hidden="true" />
+      <div class="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,243,255,0.03)_2px,rgba(0,243,255,0.03)_4px)] pointer-events-none" aria-hidden="true" />
+      <div class="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,243,255,0.06)] pointer-events-none" aria-hidden="true" />
+      <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
+        <span class="inline-block px-3 py-1 text-xs font-semibold text-cyber-neon bg-cyber-neon/10 border border-cyber-neon/50 rounded-full mb-6 backdrop-blur-sm shadow-[0_0_20px_rgba(0,243,255,0.2)]">Beta – Early Access</span>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight drop-shadow-[0_0_30px_rgba(0,243,255,0.15)]">
+          High-performance EU AI Act Compliance Firewall
         </h1>
-        <p class="text-xl text-slate max-w-2xl mx-auto mb-10">
-          De enige stateless Legal Guardrail API die de EU AI Act handhaaft zonder je applicatie te vertragen. Gebouwd in Rust voor missiekritische snelheid.
+        <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+          Real-time risk assessment & PII stripping for the AI era. Sub-second decisions, GDPR-proof audit logs.
         </p>
-        <a
-          href="/pioneer"
-          class="inline-flex items-center px-6 py-3 border border-electric text-base font-medium rounded-md text-navy bg-electric hover:bg-electric-dim hover:border-electric-dim text-navy transition duration-0 shadow-glow"
-        >
-          Join the Beta Pioneer Program
-          <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-        </a>
-      </section>
-
-      <!-- Article 5 Playground (V1) -->
-      <section class="mb-20">
-        <div class="bg-navy-light border border-electric/20 rounded-xl p-6 shadow-glow">
-          <h2 class="text-2xl font-bold text-slate-light mb-2">Test your prompt for Article 5 violations</h2>
-          <p class="text-slate text-sm mb-4">Enter a system prompt or user query. Mock result reflects fast-path (&lt;50ms) legal reference.</p>
-          <div class="flex flex-col sm:flex-row gap-4 mb-4">
-            <input
-              type="text"
-              id="playground-input"
-              placeholder="Enter a system prompt or user query"
-              class="flex-1 rounded-lg border border-electric/30 bg-navy text-slate-light px-4 py-3 placeholder-slate-dark focus:outline-none focus:ring-2 focus:ring-electric/50 focus:border-electric transition duration-0"
-            />
-            <button
-              type="button"
-              id="playground-submit"
-              class="px-6 py-3 rounded-lg bg-electric text-navy font-medium hover:bg-electric-dim border border-electric transition duration-0"
-            >
-              Check
-            </button>
-          </div>
-          <div id="playground-result" class="hidden rounded-lg border p-4 font-mono text-sm">
-            <div id="playground-result-label" class="font-semibold mb-1"></div>
-            <div id="playground-result-detail" class="text-slate"></div>
-            <div id="playground-result-ms" class="text-electric text-xs mt-2"></div>
-          </div>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a
+            href="https://github.com/Tex0711/eu-ai-act-validator-api"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center px-6 py-3 rounded-xl text-cyber-bg font-semibold bg-cyber-neon hover:bg-cyber-neon/90 border border-cyber-neon transition shadow-[0_0_25px_rgba(0,243,255,0.4)] hover:shadow-[0_0_20px_rgba(0,243,255,0.2)] hover:shadow-[0_0_35px_rgba(0,243,255,0.5)] backdrop-blur-sm"
+          >
+            View on GitHub
+            <svg class="ml-2 w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+          <a
+            href="https://github.com/Tex0711/eu-ai-act-validator-api/raw/main/docs/ComplianceCode-Gatekeeper.postman_collection.json"
+            class="inline-flex items-center px-6 py-3 rounded-xl font-semibold text-cyber-neon bg-white/5 hover:bg-cyber-neon/10 border border-cyber-neon/50 transition shadow-[0_0_20px_rgba(0,243,255,0.15)] hover:shadow-[0_0_20px_rgba(0,243,255,0.2)] hover:shadow-[0_0_25px_rgba(0,243,255,0.25)] backdrop-blur-sm"
+          >
+            Get Postman Collection
+            <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          </a>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- Choose your perspective: Three Paths -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <!-- Bento Grid: Solution + Performance (asymmetric blocks) -->
       <section class="mb-20">
-        <h2 class="text-2xl font-bold text-slate-light mb-2 text-center">Choose your perspective</h2>
-        <p class="text-slate text-center mb-10">DPO, CISO, or Developer — one API, three stakeholder views.</p>
-        <div class="grid sm:grid-cols-3 gap-6">
-          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 hover:shadow-glow transition duration-0">
+        <h2 class="text-3xl font-bold text-white mb-10 text-center drop-shadow-[0_0_20px_rgba(0,243,255,0.1)]">Solution &amp; Performance</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <!-- Ultra-Fast Rust (wide) -->
+          <div class="md:col-span-2 rounded-2xl border border-cyber-neon/40 bg-white/[0.03] backdrop-blur-lg p-6 shadow-[0_0_40px_rgba(0,243,255,0.12)] hover:shadow-[0_0_50px_rgba(0,243,255,0.18)] transition-shadow focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
             <div class="flex items-center gap-2 mb-4">
-              <svg class="w-8 h-8 text-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <h3 class="text-lg font-bold text-electric">DPO</h3>
+              <span class="text-cyber-neon font-bold text-lg drop-shadow-[0_0_15px_rgba(0,243,255,0.3)]">Ultra-Fast Rust</span>
             </div>
-            <p class="text-slate-dark text-sm font-medium mb-1">Problem</p>
-            <p class="text-slate text-sm mb-3">Geen zicht op welke prompts naar AI gaan; audit-trail ontbreekt voor toezichthouder.</p>
-            <p class="text-slate-dark text-sm font-medium mb-1">Sovereign solution</p>
-            <p class="text-slate text-sm">Audit-Ready Logs (Art. 12): onwijzigbare logs met gemaskeerde prompt + beslissing. Data minimalisatie door PII-stripping.</p>
+            <p class="text-slate-400 text-sm leading-relaxed mb-3">
+              Core compliance checks and PII stripping run on a dedicated Rust engine. Deterministic rule-sets deliver &lt;50&nbsp;ms decisions on the fast path, with PII stripping in the microsecond range so the privacy layer adds no perceptible delay.
+            </p>
+            <p class="text-cyber-emerald text-xs font-medium">P99 &lt; 1 ms · Zero-allocation · Rule-based</p>
           </div>
-          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 hover:shadow-glow transition duration-0">
-            <h3 class="text-lg font-bold text-electric mb-4">CISO</h3>
-            <p class="text-slate-dark text-sm font-medium mb-1">Problem</p>
-            <p class="text-slate text-sm mb-3">US CLOUD Act-risico; data in niet-EU cloud; geen controle over AI-verkeer.</p>
-            <p class="text-slate-dark text-sm font-medium mb-1">Sovereign solution</p>
-            <p class="text-slate text-sm">EU-Sovereignty: 100% EU-hosted (Scaleway/OVH). &lt;1ms local latency voor Fast Path. Stateless: wij slaan geen prompts op.</p>
+          <!-- Deep Analysis LLM -->
+          <div class="rounded-2xl border border-cyber-neon/40 bg-white/[0.03] backdrop-blur-lg p-6 shadow-[0_0_40px_rgba(0,243,255,0.12)] hover:shadow-[0_0_50px_rgba(0,243,255,0.18)] transition-shadow focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-cyber-neon font-bold text-lg drop-shadow-[0_0_15px_rgba(0,243,255,0.3)]">Deep Analysis (LLM)</span>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-3">
+              When nuance is required, the same pipeline routes to an LLM for deep analysis. Model-agnostic: use Gemini, Claude, or local models via <code class="text-cyber-neon/90">LLM_PROVIDER</code>. Intelligent routing minimizes LLM calls without sacrificing accuracy—validated against 36+ EU AI Act scenarios.
+            </p>
+            <p class="text-cyber-emerald text-xs font-medium">2–4 s when needed · ALLOW/DENY/WARN · Article refs</p>
           </div>
-          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 hover:shadow-glow transition duration-0">
-            <h3 class="text-lg font-bold text-electric mb-4">Developer</h3>
-            <p class="text-slate-dark text-sm font-medium mb-1">Problem</p>
-            <p class="text-slate text-sm mb-3">Compliance inbouwen vertraagt releases; geen eenvoudige API voor EU AI Act.</p>
-            <p class="text-slate-dark text-sm font-medium mb-1">Sovereign solution</p>
-            <p class="text-slate text-sm mb-3">Eén endpoint: POST prompt → ALLOW/DENY/WARNING + reden + artikel. Proxy, SDK of Gateway — drie regels code.</p>
-            <pre class="bg-navy rounded p-3 text-electric/90 text-xs overflow-x-auto border border-electric/20"><code>guardrail.check(prompt)
-if response["decision"] == "DENY": reject()</code></pre>
+          <!-- Performance metrics (full width) -->
+          <div class="md:col-span-3 rounded-2xl border border-cyber-neon/40 bg-white/[0.03] backdrop-blur-lg p-6 shadow-[0_0_40px_rgba(0,243,255,0.12)] hover:shadow-[0_0_50px_rgba(0,243,255,0.18)] transition-shadow focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-cyber-neon font-bold text-lg drop-shadow-[0_0_15px_rgba(0,243,255,0.3)]">Performance</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div>
+                <div class="text-cyber-emerald font-bold text-xl">P99 &lt; 1 ms</div>
+                <div class="text-slate-500 text-xs">PII stripping</div>
+              </div>
+              <div>
+                <div class="text-cyber-emerald font-bold text-xl">&lt;50 ms</div>
+                <div class="text-slate-500 text-xs">Fast path</div>
+              </div>
+              <div>
+                <div class="text-cyber-emerald font-bold text-xl">100%</div>
+                <div class="text-slate-500 text-xs">36 scenarios</div>
+              </div>
+              <div>
+                <div class="text-cyber-emerald font-bold text-xl">500+</div>
+                <div class="text-slate-500 text-xs">Concurrent users</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- Value Proposition Matrix -->
+      <!-- Workflow: Mermaid diagram (electric styling) -->
       <section class="mb-20">
-        <h2 class="text-2xl font-bold text-slate-light mb-6 text-center">How ComplianceCode aligns your stakeholders</h2>
-        <div class="overflow-x-auto rounded-xl border border-electric/20 shadow-glow">
-          <table class="min-w-full">
-            <thead class="bg-navy-light">
-              <tr>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Stakeholder</th>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Pain point</th>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-electric">Sovereign solution</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-electric/10">
-              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-medium text-slate-light">DPO</td><td class="px-4 py-3 text-sm text-slate">Geen audit-trail; geen inzicht in AI-prompts; GDPR-risico.</td><td class="px-4 py-3 text-sm text-slate">Audit-Ready Logs (Art. 12), PII-stripping, gemaskeerde prompt in log.</td></tr>
-              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-medium text-slate-light">CISO</td><td class="px-4 py-3 text-sm text-slate">CLOUD Act; data buiten EU; latency en beschikbaarheid.</td><td class="px-4 py-3 text-sm text-slate">100% EU-hosted, stateless, &lt;50ms Fast Path, rate limiting.</td></tr>
-              <tr class="bg-navy-light/50"><td class="px-4 py-3 text-sm font-medium text-slate-light">Developer</td><td class="px-4 py-3 text-sm text-slate">Compliance vertraagt; geen simpele API voor EU AI Act.</td><td class="px-4 py-3 text-sm text-slate">Eén API, proxy/SDK/Gateway, drie regels code, &lt;50ms waar mogelijk.</td></tr>
-            </tbody>
-          </table>
+        <h2 class="text-3xl font-bold text-white mb-10 text-center drop-shadow-[0_0_20px_rgba(0,243,255,0.1)]">Workflow</h2>
+        <div class="rounded-2xl border border-cyber-neon/40 bg-white/[0.03] backdrop-blur-lg p-6 overflow-x-auto shadow-[0_0_30px_rgba(0,243,255,0.08)] focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+          <pre class="mermaid text-center bg-transparent border-0 p-0 m-0">{mermaidDiagram}</pre>
         </div>
       </section>
 
-      <!-- Integration Tabs -->
+      <!-- Enforcement vs Surveillance (DPO mission statement) -->
       <section class="mb-20">
-        <h2 class="text-2xl font-bold text-slate-light mb-4">Integreer in drie stappen</h2>
-        <p class="text-slate mb-6">Kies proxy, SDK of API Gateway.</p>
-        <div class="bg-navy-light border border-electric/20 rounded-xl overflow-hidden shadow-glow">
-          <div class="flex border-b border-electric/20 bg-navy" role="tablist" id="integration-tabs">
-            <button type="button" class="integration-tab px-6 py-3 text-sm font-medium border-b-2 border-electric text-electric -mb-px transition duration-0" data-tab="proxy" aria-selected="true">Proxy (Nginx)</button>
-            <button type="button" class="integration-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-slate hover:text-electric transition duration-0" data-tab="sdk" aria-selected="false">SDK (3 regels)</button>
-            <button type="button" class="integration-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-slate hover:text-electric transition duration-0" data-tab="gateway" aria-selected="false">API Gateway (Kong)</button>
-          </div>
-          <div class="p-6">
-            <div id="tab-proxy" class="tab-panel" role="tabpanel">
-              <p class="text-sm text-slate mb-3">Verkeer naar OpenAI omleiden via je proxy; de proxy roept ComplianceCode aan vóór doorsturen.</p>
-              <pre class="bg-navy text-electric/90 p-4 rounded-lg overflow-x-auto text-sm border border-electric/20"><code>{codeProxy}</code></pre>
-            </div>
-            <div id="tab-sdk" class="tab-panel hidden" role="tabpanel">
-              <p class="text-sm text-slate mb-3">Three-line install: wrap je prompt in een guardrail-call.</p>
-              <pre class="bg-navy text-electric/90 p-4 rounded-lg overflow-x-auto text-sm border border-electric/20"><code>from compliancecode import guardrail
-response = guardrail.check(prompt, api_key=os.environ["API_KEY"])
-if response["decision"] == "DENY": raise ValueError(response["reason"])</code></pre>
-            </div>
-            <div id="tab-gateway" class="tab-panel hidden" role="tabpanel">
-              <p class="text-sm text-slate mb-3">Kong-plugin: request eerst door ComplianceCode laten valideren.</p>
-              <pre class="bg-navy text-electric/90 p-4 rounded-lg overflow-x-auto text-sm border border-electric/20"><code>{codeGateway}</code></pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Sovereignty & Trust -->
-      <section class="mb-20">
-        <h2 class="text-2xl font-bold text-slate-light mb-6">Sovereignty &amp; Trust</h2>
-        <div class="grid sm:grid-cols-3 gap-6">
-          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 hover:shadow-glow transition duration-0">
-            <div class="text-lg font-bold text-electric mb-2">100% EU-Hosted</div>
-            <p class="text-slate text-sm">Data verlaat nooit de Europese jurisdictie (Scaleway/OVH). Geen CLOUD Act-exposure.</p>
-          </div>
-          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 hover:shadow-glow transition duration-0">
-            <div class="text-lg font-bold text-electric mb-2">Stateless by Design</div>
-            <p class="text-slate text-sm">Wij slaan geen prompts op. Wat we niet hebben, kunnen we niet lekken. Alleen audit-log op jouw verzoek.</p>
-          </div>
-          <div class="bg-navy-light border border-electric/20 rounded-xl p-6 hover:shadow-glow transition duration-0">
-            <div class="text-lg font-bold text-electric mb-2">Audit-Ready (Art. 12)</div>
-            <p class="text-slate text-sm">Onwijzigbare logs voor je volgende toezichthouder-audit. Input → Redenering → Output.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- CTA + Beta disclaimer -->
-      <section class="text-center mb-12">
-        <a href="/pioneer" class="inline-flex items-center px-6 py-3 border border-electric text-base font-medium rounded-md text-navy bg-electric hover:bg-electric-dim transition duration-0 shadow-glow">
-          Join the Beta Pioneer Program
-        </a>
-        <p class="mt-6 text-sm text-amber-200 bg-amber-900/30 border border-amber-500/30 rounded-lg px-4 py-3 max-w-2xl mx-auto">
-          <strong>Beta – inspanningsverplichting:</strong> De API wordt aangeboden op basis van best effort; geen resultaatgarantie. Geschikt voor early adopters en pilots.
+        <h2 class="text-3xl font-bold text-white mb-10 text-center drop-shadow-[0_0_20px_rgba(0,243,255,0.1)]">Enforcement vs Surveillance</h2>
+        <p class="text-slate-400 text-center max-w-2xl mx-auto mb-10 leading-relaxed">
+          ComplianceCode.eu acts as an essential gatekeeper, ensuring adherence to the EU AI Act without infringing on privacy or data sovereignty. We don't watch your users; we protect your data.
         </p>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="rounded-2xl border border-cyber-emerald/40 bg-white/[0.03] backdrop-blur-lg p-6 text-center shadow-[0_0_30px_rgba(16,185,129,0.1)] hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] transition-shadow focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+            <h3 class="text-cyber-emerald font-bold text-lg mb-2">Proactive Protection</h3>
+            <p class="text-slate-400 text-sm">Block prohibited practices before they reach your AI stack. Real-time guardrails, not after-the-fact monitoring.</p>
+          </div>
+          <div class="rounded-2xl border border-cyber-emerald/40 bg-white/[0.03] backdrop-blur-lg p-6 text-center shadow-[0_0_30px_rgba(16,185,129,0.1)] hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] transition-shadow focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+            <h3 class="text-cyber-emerald font-bold text-lg mb-2">Data Privacy</h3>
+            <p class="text-slate-400 text-sm">PII stripped before processing. Only masked prompts and audit metadata are stored—GDPR-proof by design.</p>
+          </div>
+          <div class="rounded-2xl border border-cyber-emerald/40 bg-white/[0.03] backdrop-blur-lg p-6 text-center shadow-[0_0_30px_rgba(16,185,129,0.1)] hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] transition-shadow focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+            <h3 class="text-cyber-emerald font-bold text-lg mb-2">Legal Adherence</h3>
+            <p class="text-slate-400 text-sm">EU AI Act Article 5 and high-risk provisions. Clear ALLOW/DENY/WARNING with article references for compliance teams.</p>
+          </div>
+        </div>
       </section>
+
+      <!-- Live API Preview: macOS-style terminal -->
+      <section class="mb-20">
+        <h2 class="text-3xl font-bold text-white mb-6 text-center drop-shadow-[0_0_20px_rgba(0,243,255,0.1)]">Live API Preview</h2>
+        <p class="text-slate-400 text-center mb-6 max-w-xl mx-auto">See how a <code class="text-cyber-neon/90 bg-cyber-neon/10 px-1.5 py-0.5 rounded">/gatekeeper</code> request and response look.</p>
+        <div class="rounded-2xl border border-cyber-neon/40 bg-white/[0.03] backdrop-blur-lg overflow-hidden shadow-[0_0_30px_rgba(0,243,255,0.08)] focus-within:ring-2 focus-within:ring-cyber-neon/50 focus-within:ring-offset-2 focus-within:ring-offset-cyber-bg">
+          <!-- macOS terminal header: three dots + Live Node -->
+          <div class="flex items-center gap-3 border-b border-cyber-neon/20 bg-black/40 px-4 py-3">
+            <div class="flex gap-2">
+              <span class="w-3 h-3 rounded-full bg-[#ff5f57]" aria-hidden="true" />
+              <span class="w-3 h-3 rounded-full bg-[#febc2e]" aria-hidden="true" />
+              <span class="w-3 h-3 rounded-full bg-[#28c840]" aria-hidden="true" />
+            </div>
+            <div class="flex-1 flex justify-center">
+              <span class="text-slate-500 text-xs font-mono">gatekeeper — bash</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="relative flex h-2 w-2" aria-hidden="true">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyber-emerald opacity-75" />
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-cyber-emerald" />
+              </span>
+              <span class="text-cyber-emerald text-xs font-mono">Live Node: EU-West-1</span>
+            </div>
+          </div>
+          <div class="border-b border-cyber-neon/20 px-4 py-2 text-xs font-medium text-slate-500 bg-black/30">Request</div>
+          <pre class="p-4 text-sm text-slate-300 font-mono overflow-x-auto bg-black/20"><code>{gatekeeperRequest}</code></pre>
+          <div class="border-b border-cyber-neon/20 px-4 py-2 text-xs font-medium text-slate-500 bg-black/30">Response</div>
+          <pre class="p-4 text-sm text-cyber-emerald font-mono overflow-x-auto bg-black/20"><code>{gatekeeperResponse}</code></pre>
+        </div>
+      </section>
+
+      <!-- CTAs again -->
+      <section class="mb-20 text-center">
+        <div class="flex flex-wrap justify-center gap-4">
+          <a
+            href="https://github.com/Tex0711/eu-ai-act-validator-api"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center px-6 py-3 rounded-xl text-cyber-bg font-semibold bg-cyber-neon hover:bg-cyber-neon/90 border border-cyber-neon transition shadow-[0_0_25px_rgba(0,243,255,0.4)] hover:shadow-[0_0_20px_rgba(0,243,255,0.2)] hover:shadow-[0_0_35px_rgba(0,243,255,0.5)] backdrop-blur-sm"
+          >
+            View on GitHub
+          </a>
+          <a
+            href="https://github.com/Tex0711/eu-ai-act-validator-api/raw/main/docs/ComplianceCode-Gatekeeper.postman_collection.json"
+            class="inline-flex items-center px-6 py-3 rounded-xl font-semibold text-cyber-neon bg-white/5 hover:bg-cyber-neon/10 border border-cyber-neon/50 transition shadow-[0_0_20px_rgba(0,243,255,0.15)] hover:shadow-[0_0_20px_rgba(0,243,255,0.2)] hover:shadow-[0_0_25px_rgba(0,243,255,0.25)] backdrop-blur-sm"
+          >
+            Get Postman Collection
+          </a>
+        </div>
+      </section>
+
+      <!-- Landing footer tagline -->
+      <footer class="pt-8 pb-12 border-t border-cyber-neon/20 text-center">
+        <p class="text-slate-500 text-sm">ComplianceCode.eu – Digital Sovereignty for the AI Era</p>
+      </footer>
     </main>
   </div>
 </Layout>
 
 <script>
-  document.querySelectorAll('.integration-tab').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const tab = btn.getAttribute('data-tab');
-      document.querySelectorAll('.integration-tab').forEach((b) => {
-        b.classList.remove('border-electric', 'text-electric');
-        b.classList.add('border-transparent', 'text-slate');
-        b.setAttribute('aria-selected', 'false');
+  // Mermaid: load and run with cyber-friendly theme
+  (async () => {
+    try {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+      await new Promise((res, rej) => { script.onload = res; script.onerror = rej; });
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: '#0a0a0a',
+          primaryTextColor: '#e2e8f0',
+          primaryBorderColor: '#00f3ff',
+          lineColor: '#00f3ff',
+          secondaryColor: '#0d0d0d',
+          tertiaryColor: '#10b981',
+        },
       });
-      btn.classList.add('border-electric', 'text-electric');
-      btn.classList.remove('border-transparent', 'text-slate');
-      btn.setAttribute('aria-selected', 'true');
-      document.querySelectorAll('.tab-panel').forEach((panel) => {
-        panel.classList.add('hidden');
-        if (panel.id === `tab-${tab}`) panel.classList.remove('hidden');
-      });
-    });
-  });
-
-  /** Mock Article 5 matcher: returns first matching rule (NL + EN keywords). */
-  function mockArticle5Match(prompt) {
-    const t = (prompt || '').toLowerCase();
-    // Art. 5(1)(a) – subliminal / behavioural manipulation
-    if (/\b(subliminal|onwaarneembare?|gedragsmanipulatie|zonder dat ze het doorhebben|visuele signalen.*stimuleren|stimuleren.*zonder)\b/.test(t) ||
-        /\b(subliminal|imperceptible|behavioural manipulation|without (their )?awareness)\b/.test(t))
-      return { decision: 'REJECTED', article: 'Art. 5(1)(a)', reason: 'Subliminal manipulation / behavioural manipulation beyond awareness' };
-    // Art. 5(1)(b) – exploitation of vulnerability (age, disability, etc.)
-    if (/\b(exploitatie|kwetsbaar|eenzame ouderen|dementie|spaargeld.*investeren|investeren.*spaargeld|overtuigen.*investeren)\b/.test(t) ||
-        /\b(exploit|vulnerable|elderly|dementia|lonely.*invest|convince.*invest|savings.*crypto)\b/.test(t))
-      return { decision: 'REJECTED', article: 'Art. 5(1)(b)', reason: 'Exploitation of vulnerabilities (e.g. age, mental impairment)' };
-    // Art. 5(1)(c) – social scoring
-    if (/\b(betrouwbaarheidsscore|sociale score|social scoring|score.*berekenen.*burgers|posts.*sociale media.*score)\b/.test(t) ||
-        /\b(social score|reliability score|trust score|citizens?.*score|social media.*score)\b/.test(t))
-      return { decision: 'REJECTED', article: 'Art. 5(1)(c)', reason: 'Social scoring for general purpose' };
-    // Art. 5(1)(d) – predictive policing / crime risk
-    if (/\b(voorspellend.*misdaad|predictive.*policing|crime risk|recidive.*risico)\b/.test(t))
-      return { decision: 'REJECTED', article: 'Art. 5(1)(d)', reason: 'Predictive crime risk assessment' };
-    // Art. 5(1)(f) – emotion recognition in workplace/education
-    if (/\b(emotie.*herkennen|emotion recognition|werkvloer|onderwijs.*emotie)\b/.test(t))
-      return { decision: 'REJECTED', article: 'Art. 5(1)(f)', reason: 'Emotion recognition in workplace/education' };
-    return { decision: 'ALLOWED', article: null, reason: 'No prohibited or high-risk provisions identified' };
-  }
-
-  document.getElementById('playground-submit')?.addEventListener('click', () => {
-    const input = document.getElementById('playground-input');
-    const resultEl = document.getElementById('playground-result');
-    const labelEl = document.getElementById('playground-result-label');
-    const detailEl = document.getElementById('playground-result-detail');
-    const msEl = document.getElementById('playground-result-ms');
-    if (!resultEl || !labelEl || !detailEl || !msEl) return;
-    const r = mockArticle5Match(input?.value || '');
-    resultEl.classList.remove('hidden');
-    if (r.decision === 'REJECTED') {
-      labelEl.textContent = `${r.decision}: Violates ${r.article} - ${r.reason}`;
-      labelEl.className = 'font-semibold mb-1 text-red-400';
-      detailEl.textContent = `Prohibited practice under ${r.article} of the EU AI Act. Request denied.`;
-    } else {
-      labelEl.textContent = r.decision;
-      labelEl.className = 'font-semibold mb-1 text-electric';
-      detailEl.textContent = r.reason + '.';
+      await mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+    } catch (_) {
+      const el = document.querySelector('.mermaid');
+      if (el) el.innerHTML = '<p class="text-slate-500">Diagram could not be loaded. See README for the workflow.</p>';
     }
-    const ms = Math.floor(Math.random() * 25) + 18;
-    msEl.textContent = `Fast-path result in ${ms}ms`;
-  });
+  })();
 </script>

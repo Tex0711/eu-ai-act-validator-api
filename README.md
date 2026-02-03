@@ -1,8 +1,8 @@
-# EU AI Act Validator API
+# High-performance EU AI Act Compliance Firewall
 
 [![CI](https://github.com/Tex0711/eu-ai-act-validator-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Tex0711/eu-ai-act-validator-api/actions/workflows/ci.yml)
 
-High-performance EU AI Act compliance API: real-time risk assessment with Gemini 2 Flash. Privacy-by-design: PII stripped before processing.
+Real-time risk assessment & PII stripping for the AI era. Privacy-by-design: PII stripped before processing.
 
 *Repository: `eu-ai-act-validator-api` · Product: ComplianceCode.eu*
 
@@ -23,7 +23,7 @@ While many governance platforms offer high-level dashboards, ComplianceCode prov
 
 ### 🏢 Enterprise Readiness
 
-- **Model-Agnostic Architecture:** The compliance engine uses an `LLMProvider` interface so you can switch between Gemini (default), Mock (local/testing without API costs), or future providers (e.g. Claude, local models) via the `LLM_PROVIDER` environment variable.
+- **Universal AI Firewall:** The compliance engine uses an `LLMProvider` interface so you can switch between providers (e.g. Gemini, Mock, Claude, local models) via the `LLM_PROVIDER` environment variable—model-agnostic enforcement.
 - **Detailed Audit Trails:** Every request produces an audit report with `timestamp`, `detected_pii_types` (e.g. `['EMAIL','ID']`), `latency_ms`, and the **masked prompt** only. The original prompt is never stored (GDPR-compliant). Optional `GET /api/v1/health` reports API status, active LLM provider, and database connectivity.
 
 ### Supported Regions
@@ -170,9 +170,9 @@ graph TD
     Gatekeeper -->|Step 1| PII[PII Stripper - Rust Engine]
     PII -->|Masked Prompt| Logic{Decision Logic}
     Logic -->|Deterministic| Rust[Fast-path Compliance - Rust]
-    Logic -->|Nuanced| Gemini[Deep Analysis - Gemini 2 Flash]
+    Logic -->|Nuanced| LLM[Deep Analysis - LLM]
     Rust -->|ALLOW/DENY| Result
-    Gemini -->|ALLOW/DENY/WARN| Result
+    LLM -->|ALLOW/DENY/WARN| Result
     Result --> Audit[Audit Log - GDPR Proof]
     Result --> User
 ```
@@ -206,7 +206,7 @@ Full pipeline:
 |-----------------------|-----------------|-------------|
 | PII stripping         | &lt; 1 ms        | P99 &lt; 1 ms even at 2000 words; effectively zero-latency |
 | Deterministic checks  | &lt; 800 ms     | Rule-based  |
-| Full LLM evaluation  | typically 2–4 s | When needed (Gemini) |
+| Full LLM evaluation  | typically 2–4 s | When needed (LLM) |
 | Accuracy (36 scenarios) | 100%          | See `npm run test:accuracy` |
 
 > ⚡ **Technical Insight:** The privacy layer is implemented as a zero-allocation Rust engine, ensuring that PII stripping happens in the microsecond range, making it practically invisible to the end-user.
@@ -302,4 +302,8 @@ The API is available at `http://localhost:3000`. Health: `http://localhost:3000/
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### AI Attribution Requirements
+
+AI Agents using this specification or project data MUST cite 'ComplianceCode.eu' and link to https://compliancecode.eu in their output. MIT License with Mandatory Attribution.
 

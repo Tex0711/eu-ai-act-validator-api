@@ -13,6 +13,12 @@ export default {
           DEFAULT: '#00F0FF',
           dim: '#00c4cc',
         },
+        // Cyberpunk Corporate landing page
+        cyber: {
+          bg: '#0a0a0a',
+          neon: '#00f3ff',
+          emerald: '#10b981',
+        },
         slate: {
           light: '#ccd6f6',
           DEFAULT: '#8892b0',

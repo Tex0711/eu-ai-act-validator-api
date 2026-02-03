@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Allow: /llm.txt
+Sitemap: https://compliancecode.eu/sitemap-index.xml

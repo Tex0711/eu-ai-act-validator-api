@@ -1,15 +1,25 @@
-# build output
+# —— Build output (no website artifacts to GitHub) ——
 dist/
 .output/
-.astro/
+.vercel/
+.netlify/
 
-# Rust (engine-rust)
-engine-rust/target/
-
-# dependencies
+# —— Dependencies ——
 node_modules/
 
-# logs and temporary output
+# —— Astro cache (temporary) ——
+.astro/
+
+# —— Rust build (engine-rust and any other Cargo projects) ——
+target/
+**/target/
+
+# —— macOS ——
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# —— Logs and temporary output ——
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -17,31 +27,27 @@ yarn-error.log*
 pnpm-debug.log*
 test-output.log
 
-# environment variables (never commit secrets)
+# —— Environment (never commit secrets) ——
 .env
 .env.local
 .env.*.local
 .env.production
 ip_research_agent/.env
 
-# macOS-specific files
-.DS_Store
-
-# IDE
+# —— IDE / editor ——
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# generated / local
+# —— Generated / local ——
 audit-report-*.csv
 technical_spec*.html
 
-# internal documentation (not for public repo)
+# —— Internal / confidential (not for public repo) ——
 internal-docs/
 STYLE_GUIDE.md
-
-# Confidential Intellectual Property
 TECHNICAL_SPECIFICATION_IDEPOSIT*.md
 docs/specs/TECHNICAL_SPECIFICATION_IDEPOSIT*.md
 notities_taco/
