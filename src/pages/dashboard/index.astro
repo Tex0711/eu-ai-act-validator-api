@@ -1,5 +1,6 @@
 ---
-import { supabase, type AuditLog } from '@/lib/supabase/client';
+export const prerender = false;
+import { getSupabaseClient, type AuditLog } from '@/lib/supabase/client';
 import Layout from '../../layouts/Layout.astro';
 
 // Fetch audit logs from Supabase
@@ -14,8 +15,7 @@ let stats = {
 };
 
 try {
-  // Fetch last 50 audit logs
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseClient()
     .from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
@@ -24,7 +24,7 @@ try {
   if (error) {
     console.error('Error fetching audit logs:', error);
   } else {
-    auditLogs = (data || []) as AuditLog[];
+    auditLogs = (data ?? []) as AuditLog[];
   }
 
   // Calculate statistics

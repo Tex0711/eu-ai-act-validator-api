@@ -1,30 +1,48 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL ?? (typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as Record<string, string>).SUPABASE_URL : undefined);
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? (typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as Record<string, string>).SUPABASE_SERVICE_ROLE_KEY : undefined);
+let _client: SupabaseClient | null = null;
 
-let _supabase: SupabaseClient | null = null;
-
-function getSupabase(): SupabaseClient {
-  if (_supabase) return _supabase;
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+function getEnv(name: string): string | undefined {
+  if (typeof process !== 'undefined' && process.env?.[name]) return process.env[name];
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    const v = (import.meta.env as Record<string, string | undefined>)[name];
+    if (v) return v;
   }
-  _supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-  return _supabase;
+  return undefined;
 }
 
-/** Lazy-initialized Supabase client. Fails only when used if env vars are missing (so build can succeed). */
+/**
+ * Returns the Supabase client. Creates it on first use.
+ * Throws only when called at runtime with missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.
+ * Safe during build: env is read only when this function is invoked.
+ */
+export function getSupabaseClient(): SupabaseClient {
+  if (_client) return _client;
+  const url = getEnv('SUPABASE_URL');
+  const key = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url?.trim() || !key?.trim()) {
+    throw new Error(
+      'Missing Supabase environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
+    );
+  }
+  _client = createClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  return _client;
+}
+
+/**
+ * Lazy Supabase client. Same as getSupabaseClient() but as a drop-in instance.
+ * Safe during build: no env read until first property access.
+ */
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
-    return getSupabase()[prop as keyof SupabaseClient];
-  }
-});
+    return (getSupabaseClient() as Record<string, unknown>)[prop as string];
+  },
+}) as SupabaseClient;
 
 // Type definitions for our tables
 export interface ComplianceKnowledge {
