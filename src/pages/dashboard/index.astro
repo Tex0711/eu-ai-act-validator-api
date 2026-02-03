@@ -3,7 +3,10 @@ export const prerender = false;
 import { getSupabaseClient, type AuditLog } from '@/lib/supabase/client';
 import Layout from '../../layouts/Layout.astro';
 
-// Fetch audit logs from Supabase
+// Force fresh data on every request: no CDN or browser cache
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+// Fetch audit logs from Supabase (runs on every request)
 let auditLogs: AuditLog[] = [];
 let stats = {
   totalChecks: 0,
