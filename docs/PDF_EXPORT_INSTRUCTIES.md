@@ -1,6 +1,6 @@
-# PDF Export Instructies voor i-DEPOT Indiening
+# PDF Export Instructies voor Technische Documentatie
 
-Het technische specificatie document is nu klaar voor export naar PDF. Hier zijn 3 methoden van eenvoudig naar professioneel:
+Exporteer je interne technische specificatie (Markdown) naar PDF. Hier zijn 3 methoden van eenvoudig naar professioneel:
 
 ---
 
@@ -12,7 +12,7 @@ Het technische specificatie document is nu klaar voor export naar PDF. Hier zijn
 3. Klik "Install"
 
 ### Stap 2: Exporteer naar PDF
-1. Open `TECHNICAL_SPECIFICATION_IDEPOSIT.md`
+1. Open je technische specificatiedocument (Markdown)
 2. Rechtermuisknop op het bestand
 3. Kies "Markdown PDF: Export (pdf)"
 4. PDF wordt aangemaakt in dezelfde folder
@@ -42,14 +42,14 @@ brew install --cask basictex
 
 ### Stap 3: Genereer PDF
 ```bash
-cd /Users/tacovanderpoel/Development/compliance-code
+cd /pad/naar/jouw/project
 
-# Simpele versie (zonder LaTeX)
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md -o ComplianceCode_iDEPOT_v1.0.pdf
+# Simpele versie (zonder LaTeX; vervang JOUW_SPEC.md door je Markdown-bestand)
+pandoc JOUW_SPEC.md -o Technical-Specification_v1.0.pdf
 
 # Professionele versie (met LaTeX, mooiere opmaak)
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
-  -o ComplianceCode_iDEPOT_v1.0.pdf \
+pandoc JOUW_SPEC.md \
+  -o Technical-Specification_v1.0.pdf \
   --pdf-engine=pdflatex \
   --toc \
   --number-sections \
@@ -62,7 +62,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
 - Professionele typografie
 - Automatische Table of Contents
 - Genummerde secties
-- Perfect voor i-DEPOT indiening
+- Geschikt voor formele documentatie of IP-registratie
 
 ---
 
@@ -70,7 +70,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
 
 ### Optie A: Dillinger.io
 1. Ga naar https://dillinger.io
-2. Plak de inhoud van `TECHNICAL_SPECIFICATION_IDEPOSIT.md`
+2. Plak de inhoud van je technische specificatiedocument (Markdown)
 3. Klik op "Export as" → "PDF"
 4. Download de PDF
 
@@ -83,7 +83,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
 
 ### Optie C: Markdown to PDF (online)
 1. Ga naar https://www.markdowntopdf.com
-2. Upload `TECHNICAL_SPECIFICATION_IDEPOSIT.md`
+2. Upload je technische specificatiedocument (Markdown)
 3. Klik "Convert"
 4. Download PDF
 
@@ -91,7 +91,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
 
 ## AANBEVOLEN WORKFLOW
 
-**Voor de meest professionele i-DEPOT indiening:**
+**Voor een professioneel indieningspakket:**
 
 1. **Gebruik Pandoc** (Methode 2)
 2. **Controleer de PDF** op:
@@ -105,9 +105,9 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
    - Plaats een `logo.png` in de project folder
    - Het voorblad zal het logo automatisch invoegen
 
-4. **Bestandsnaam voor i-DEPOT:**
+4. **Aanbevolen bestandsnaam:**
    ```
-   ComplianceCode_EU-AI-Act-Guardrail_Technical-Specification_v1.0_2026-01-31.pdf
+   Technical-Specification_v1.0_JJJJ-MM-DD.pdf
    ```
 
 ---
@@ -122,8 +122,8 @@ brew install --cask basictex
 # Update PATH
 export PATH="/Library/TeX/texbin:$PATH"
 
-# Probeer opnieuw
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md -o output.pdf
+# Probeer opnieuw (vervang JOUW_SPEC.md door je Markdown-bestand)
+pandoc JOUW_SPEC.md -o output.pdf
 ```
 
 ### Code blocks te breed in PDF
@@ -136,23 +136,19 @@ Voeg dit toe aan pandoc command:
 ### LaTeX errors
 Gebruik simpele versie zonder LaTeX engine:
 ```bash
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
-  -o output.pdf \
-  --from markdown \
-  --to pdf
+pandoc JOUW_SPEC.md -o output.pdf --from markdown --to pdf
 ```
 
 ---
 
-## FINALE CHECKLIST VOOR i-DEPOT
+## FINALE CHECKLIST
 
 - [ ] PDF heeft professioneel voorblad
 - [ ] Executive Summary aanwezig (pagina 2)
 - [ ] Table of Contents compleet
 - [ ] Alle secties genummerd (1, 1.1, 1.2, etc.)
 - [ ] Code blocks en stroomschema's leesbaar
-- [ ] Datum correct (31 januari 2026)
-- [ ] Versienummer zichtbaar (v1.0)
+- [ ] Datum en versienummer zichtbaar
 - [ ] Copyright notice aanwezig
 - [ ] Bestandsnaam beschrijvend en gedateerd
 - [ ] PDF grootte < 10MB
@@ -162,11 +158,9 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT.md \
 ## VOLGENDE STAPPEN NA PDF EXPORT
 
 1. **Review de PDF** grondig
-2. **Bewaar backup** van Markdown bronbestand
-3. **i-DEPOT indiening** via https://www.boip.int/nl/ideposit
-4. **Bewaar certificaat** na indiening
-
-**Geschatte kosten i-DEPOT:** €25-30 voor 5 jaar bescherming
+2. **Bewaar backup** van je Markdown bronbestand
+3. Voor formele IP-registratie: volg het proces van je rechtsgebied
+4. **Bewaar certificaat** na indiening indien van toepassing
 
 ---
 

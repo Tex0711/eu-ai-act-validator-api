@@ -1,6 +1,6 @@
-# PDF Export Instructions for i-DEPOT Submission
+# PDF Export Instructions for Technical Documentation
 
-The technical specification document is now ready for PDF export. Here are 3 methods from simple to professional:
+Export your internal technical specification (Markdown) to PDF. Here are 3 methods from simple to professional:
 
 ---
 
@@ -25,11 +25,11 @@ brew install --cask basictex
 
 ### Step 3: Generate PDF with Annex
 ```bash
-cd /Users/tacovanderpoel/Development/compliance-code
+cd /path/to/your/project
 
-# Professional version with LaTeX
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
-  -o ComplianceCode_EU-AI-Act-Guardrail_Technical-Specification_v1.0_EN.pdf \
+# Professional version with LaTeX (replace YOUR_SPEC.md with your Markdown file)
+pandoc YOUR_SPEC.md \
+  -o Technical-Specification_v1.0.pdf \
   --pdf-engine=pdflatex \
   --toc \
   --number-sections \
@@ -38,15 +38,14 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
   -V geometry:margin=2.5cm \
   -V fontsize=11pt
 
-# The CSV file will be referenced in the PDF
-# Include it separately in i-DEPOT submission
+# Reference annexes (e.g. CSV) in your submission package as needed
 ```
 
 **Advantages:**
 - Professional typography
 - Automatic Table of Contents
 - Numbered sections
-- Perfect for i-DEPOT submission
+- Suitable for formal documentation or IP registration
 
 ---
 
@@ -58,7 +57,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
 3. Click "Install"
 
 ### Step 2: Export to PDF
-1. Open `TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md`
+1. Open your technical specification Markdown file
 2. Right-click on the file
 3. Choose "Markdown PDF: Export (pdf)"
 4. PDF will be created in the same folder
@@ -71,7 +70,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
 
 ### Option A: Dillinger.io
 1. Go to https://dillinger.io
-2. Paste content of `TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md`
+2. Paste content of your technical specification Markdown file
 3. Click "Export as" → "PDF"
 4. Download the PDF
 
@@ -84,7 +83,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
 
 ### Option C: Markdown to PDF (online)
 1. Go to https://www.markdowntopdf.com
-2. Upload `TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md`
+2. Upload your technical specification Markdown file
 3. Click "Convert"
 4. Download PDF
 
@@ -92,7 +91,7 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
 
 ## RECOMMENDED WORKFLOW
 
-**For the most professional i-DEPOT submission:**
+**For a professional submission package:**
 
 1. **Use Pandoc** (Method 1)
 2. **Check the PDF** for:
@@ -102,13 +101,13 @@ pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
    - ✓ Code blocks well formatted
    - ✓ Flowcharts readable
 
-3. **Include CSV Annex:**
-   - Attach `audit-report-2026-02-01.csv` separately
-   - Reference in main PDF as "Annex A"
+3. **Include annexes as needed:**
+   - Attach CSV or other annexes separately
+   - Reference in main PDF (e.g. "Annex A")
 
-4. **Recommended filename for i-DEPOT:**
+4. **Recommended filename:**
    ```
-   ComplianceCode_EU-AI-Act-Guardrail_Technical-Specification_v1.0_EN_2026-01-31.pdf
+   Technical-Specification_v1.0_YYYY-MM-DD.pdf
    ```
 
 ---
@@ -123,8 +122,8 @@ brew install --cask basictex
 # Update PATH
 export PATH="/Library/TeX/texbin:$PATH"
 
-# Try again
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md -o output.pdf
+# Try again (replace YOUR_SPEC.md with your Markdown file)
+pandoc YOUR_SPEC.md -o output.pdf
 ```
 
 ### Code blocks too wide in PDF
@@ -137,52 +136,42 @@ Add this to pandoc command:
 ### LaTeX errors
 Use simple version without LaTeX engine:
 ```bash
-pandoc TECHNICAL_SPECIFICATION_IDEPOSIT_EN.md \
-  -o output.pdf \
-  --from markdown \
-  --to pdf
+pandoc YOUR_SPEC.md -o output.pdf --from markdown --to pdf
 ```
 
 ---
 
-## FINAL CHECKLIST FOR i-DEPOT
+## FINAL CHECKLIST
 
 - [ ] PDF has professional cover page
 - [ ] Executive Summary present (page 2)
 - [ ] Table of Contents complete
 - [ ] All sections numbered (1, 1.1, 1.2, etc.)
 - [ ] Code blocks and flowcharts readable
-- [ ] Date correct (January 31, 2026)
-- [ ] Version number visible (v1.0)
+- [ ] Date and version number visible
 - [ ] Copyright notice present
 - [ ] Filename descriptive and dated
 - [ ] PDF size < 10MB
-- [ ] CSV annex included separately
+- [ ] Annexes included separately if required
 
 ---
 
 ## NEXT STEPS AFTER PDF EXPORT
 
 1. **Review the PDF** thoroughly
-2. **Save backup** of Markdown source file
-3. **i-DEPOT submission** via https://www.boip.int/en/ideposit
-4. **Save certificate** after submission
-
-**Estimated i-DEPOT cost:** €25-30 for 5 years protection
+2. **Save backup** of your Markdown source file
+3. For formal IP registration (e.g. deposit schemes), follow your jurisdiction’s process
+4. **Save any certificate** after submission
 
 ---
 
-## SUBMISSION PACKAGE
+## SUBMISSION PACKAGE (EXAMPLE)
 
-Your i-DEPOT submission should include:
+A typical submission package may include:
 
-1. **Main PDF:** Technical Specification (30-40 pages)
-2. **Annex A:** `audit-report-2026-02-01.csv` (audit logs sample)
-3. **Metadata:** 
-   - Title: "EU AI Act Compliance Guardrail - Article-Specific Filtering Method"
-   - Type: Technical Specification / Software Innovation
-   - Date: January 31, 2026
-   - Version: 1.0
+1. **Main PDF:** Technical specification (e.g. 30-40 pages)
+2. **Annexes:** CSV, diagrams, or other supporting documents as needed
+3. **Metadata:** Title, type (e.g. Technical Specification / Software), date, version
 
 ---
 
