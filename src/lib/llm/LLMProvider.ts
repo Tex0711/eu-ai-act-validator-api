@@ -12,6 +12,8 @@ export interface LLMEvaluateResult {
   decision: 'ALLOW' | 'DENY' | 'WARNING';
   reason: string;
   article_ref: string | undefined;
+  /** Human-readable label in the prompt's language (e.g. Toegestaan, Waarschuwing). */
+  decision_label?: string | null;
   internal_analysis?: string | null;
   risk_score?: number | null;
 }

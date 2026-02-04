@@ -22,6 +22,8 @@ export const GatekeeperResponseSchema = z.object({
   reason: z.string().min(1).max(2000),
   article_ref: z.string().optional(),
   audit_id: z.string().uuid(),
+  /** Human-readable label in the prompt's language (e.g. Toegestaan, Waarschuwing). */
+  decision_label: z.string().max(100).optional(),
 });
 
 export type GatekeeperResponse = z.infer<typeof GatekeeperResponseSchema>;

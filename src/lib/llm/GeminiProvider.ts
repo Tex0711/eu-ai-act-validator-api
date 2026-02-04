@@ -38,6 +38,7 @@ function parseJsonResponse(text: string): Partial<LLMEvaluateResult> {
       decision: validDecision ? decision : 'WARNING',
       reason: typeof parsed.reason === 'string' && parsed.reason ? parsed.reason : 'Unable to determine compliance status',
       article_ref: parsed.article_ref ?? undefined,
+      decision_label: typeof parsed.decision_label === 'string' && parsed.decision_label ? parsed.decision_label : null,
       internal_analysis: typeof parsed.internal_analysis === 'string' ? parsed.internal_analysis : null,
       risk_score: riskScore,
     };
@@ -84,6 +85,7 @@ export class GeminiProvider implements LLMProvider {
           decision: (parsed.decision as 'ALLOW' | 'DENY' | 'WARNING') ?? 'WARNING',
           reason: parsed.reason ?? 'Compliance evaluation completed',
           article_ref: parsed.article_ref ?? input.articleRefFallback,
+          decision_label: parsed.decision_label ?? null,
           internal_analysis: parsed.internal_analysis ?? null,
           risk_score: parsed.risk_score ?? null,
         };

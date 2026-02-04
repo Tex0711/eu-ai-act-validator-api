@@ -341,15 +341,18 @@ Check if the use case falls under:
 - **General Productivity (Summarizing, coding):** Use **ALLOW**.
 
 ### OUTPUT SPECIFICATIONS
-- **Language:** The "reason" field MUST be in **Dutch (Nederlands)**.
+- **Language:** Detect the language of the **User Prompt to Audit** above. Output "reason" and "decision_label" in that same language (e.g. Dutch → Dutch, English → English). Keep "decision" as exactly one of: ALLOW | WARNING | DENY (canonical, for logic).
+- **Reason length:** Keep "reason" short. For **ALLOW**: one short sentence only. For **WARNING** or **DENY**: 1–3 sentences; cite Articles and mandatory measures where relevant.
+- **decision_label:** A short human-readable label in the prompt's language (e.g. "Toegestaan" / "Allowed", "Waarschuwing" / "Warning", "Geweigerd" / "Denied").
 - **Alignment:** risk_score must match decision (DENY: 0.9-1.0, WARNING: 0.4-0.8, ALLOW: 0.0-0.3).
 - **Format:** JSON object only. No markdown.
 
 ### JSON SCHEMA
 {
   "internal_analysis": "Mapping: Step 1 (Art 5) -> Step 2 (Annex III) -> Step 3 (Art 50/4).",
-  "decision": "ALLOW" | "DENY" | "WARNING",
-  "reason": "Dutch explanation (150-200 words). Cite specific Articles. Mention mandatory measures (FRIA, human-in-the-loop, etc.).",
+  "decision": "ALLOW" | "WARNING" | "DENY",
+  "decision_label": "Short label in the prompt's language (e.g. Toegestaan, Waarschuwing, Geweigerd).",
+  "reason": "Short explanation in the prompt's language. One sentence for ALLOW; 1-3 sentences for WARNING/DENY with Article refs.",
   "article_ref": "Specific Article or Annex reference",
   "risk_score": number
 }
@@ -426,6 +429,7 @@ Now, perform the audit:`;
 
       const response: GatekeeperResponse & {
         masked_prompt?: string;
+        decision_label?: string | null;
         internal_analysis?: string | null;
         risk_score?: number | null;
       } = {
@@ -434,6 +438,7 @@ Now, perform the audit:`;
         article_ref: llmResult.article_ref,
         audit_id: auditId,
         masked_prompt: maskedPrompt,
+        decision_label: llmResult.decision_label ?? null,
         internal_analysis: llmResult.internal_analysis ?? null,
         risk_score: llmResult.risk_score ?? null,
       };
