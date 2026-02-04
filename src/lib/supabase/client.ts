@@ -71,4 +71,16 @@ export interface AuditLog {
   created_at: string;
   response_time_ms: number;
   detected_pii_types?: string[];
+  internal_analysis?: string | null;
+  risk_score?: number | null;
+}
+
+/** Feedback on an audit log (human review). Table: audit_feedback */
+export interface AuditFeedback {
+  id: string;
+  audit_id: string;
+  is_correct: boolean;
+  corrected_decision: string | null;
+  corrected_reason: string | null;
+  created_at: string;
 }

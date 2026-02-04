@@ -25,3 +25,21 @@ export const GatekeeperResponseSchema = z.object({
 });
 
 export type GatekeeperResponse = z.infer<typeof GatekeeperResponseSchema>;
+
+/**
+ * Request schema for POST /api/v1/feedback
+ * When is_correct is false, corrected_decision and corrected_reason are required.
+ */
+export const FeedbackRequestSchema = z
+  .object({
+    audit_id: z.string().uuid(),
+    is_correct: z.boolean(),
+    corrected_decision: z.enum(['ALLOW', 'DENY', 'WARNING']).optional(),
+    corrected_reason: z.string().max(5000).optional(),
+  })
+  .refine(
+    (data) => data.is_correct === true || (data.corrected_decision != null && (data.corrected_reason ?? '').trim().length > 0),
+    { message: 'When is_correct is false, corrected_decision and corrected_reason are required.', path: ['corrected_reason'] }
+  );
+
+export type FeedbackRequest = z.infer<typeof FeedbackRequestSchema>;

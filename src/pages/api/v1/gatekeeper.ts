@@ -191,6 +191,8 @@ export const POST: APIRoute = async ({ request }) => {
       article_ref: complianceResult.article_ref || null,
       response_time_ms: auditReport.latency_ms,
       detected_pii_types: auditReport.detected_pii_types.length > 0 ? auditReport.detected_pii_types : null,
+      internal_analysis: (complianceResult as { internal_analysis?: string | null }).internal_analysis ?? null,
+      risk_score: (complianceResult as { risk_score?: number | null }).risk_score ?? null,
     };
     console.log('Inserting to DB:', auditData);
 
@@ -217,8 +219,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Step 5: Validate and return response (omit masked_prompt from client response)
-    const { masked_prompt: _omit, ...resultForClient } = complianceResult;
+    // Step 5: Validate and return response (omit internal fields from client response)
+    const { masked_prompt: _omit1, internal_analysis: _omit2, risk_score: _omit3, ...resultForClient } = complianceResult;
     const responseValidation = GatekeeperResponseSchema.safeParse(resultForClient);
     if (!responseValidation.success) {
       console.error('Invalid compliance result format:', JSON.stringify(responseValidation.error.errors));

@@ -288,7 +288,8 @@ export class ComplianceEngine {
   }
 
   /**
-   * Construct the "Judge Prompt" for LLM evaluation
+   * Construct the "Judge Prompt" for LLM evaluation.
+   * Full-spectrum audit: Articles 4, 5, 6, 7, 9, 10, 14, 50, and Annex III.
    */
   private buildJudgePrompt(
     userPrompt: string,
@@ -297,74 +298,63 @@ export class ComplianceEngine {
     const articlesText = relevantArticles
       .map((article) => {
         const ref = article.metadata?.article_ref || 'Unknown';
-        const simplified = article.metadata?.simplified_explanation 
-          ? `\n[Simplified: ${article.metadata.simplified_explanation}]` 
+        const simplified = article.metadata?.simplified_explanation
+          ? `\n[Context: ${article.metadata.simplified_explanation}]`
           : '';
         return `**Article ${ref}**${simplified}\n${article.content}`;
       })
       .join('\n\n---\n\n');
 
-    return `You are the ComplianceCode.ai Lead Auditor, an expert in EU AI Act compliance evaluation.
+    return `You are the Lead EU AI Act Auditor. Your role is to perform a systematic compliance audit focusing on Articles 4, 5, 6, 7, 9, 10, 14, 50, and Annex III.
 
-YOUR IDENTITY: You are a senior compliance auditor specializing in the EU AI Act (Regulation 2024/1689). Your role is to evaluate whether AI system prompts violate EU AI Act provisions.
+### INPUT DATA
+1. **User Prompt to Audit:** "${userPrompt}"
+2. **Retrieved Legal Context (RAG):** ${articlesText || 'Apply general principles of Regulation 2024/1689.'}
 
-INPUT:
-- User Prompt: "${userPrompt}"
-- Relevant EU AI Act Articles (retrieved via semantic search):
+### AUDIT PHASES (Sequential Filtering)
 
-${articlesText || 'No specific articles found - apply strict interpretation based on general EU AI Act principles.'}
+**PHASE 1: Prohibited Practices (Article 5 - MANDATORY DENY)**
+Check if the prompt involves:
+- (5.1.a/b) Subliminal, manipulative, or deceptive techniques / exploiting vulnerabilities.
+- (5.1.c/d) Social scoring / predictive policing based on personality traits or past behavior.
+- (5.1.e) Untargeted facial image scraping.
+- (5.1.f/g) Emotion recognition (workplace/education) or biometric categorization of sensitive traits.
+- (5.1.h) Real-time biometric identification in publicly accessible spaces.
+-> **If matched: decision = "DENY", risk_score >= 0.9.**
 
-TASK: Evaluate if the user prompt leads to an AI system that would violate EU AI Act provisions.
+**PHASE 2: High-Risk Classification (Article 6 & Annex III - MANDATORY WARNING)**
+Check if the use case falls under:
+- **Employment/HR:** Recruitment, screening, performance monitoring.
+- **Education:** Admissions, grading, exam proctoring.
+- **Critical Services:** Credit scoring, insurance, medical triage, public benefits.
+- **Law Enforcement & Justice.**
+-> **If matched: decision = "WARNING", risk_score = 0.5 - 0.8.** Reference mandatory compliance: **Articles 9 (Risk Management)**, **10 (Data Quality)**, and **14 (Human Oversight)**.
 
-EVALUATION CRITERIA:
-1. **Article 5 Violations (PROHIBITED - Always DENY):**
-   - Subliminal/manipulative techniques (5a)
-   - Exploiting vulnerabilities (5b)
-   - Social scoring systems (5c)
-   - Predictive crime risk assessment (5d)
-   - Untargeted facial recognition scraping (5e)
-   - Emotion recognition in workplace/education (5f)
-   - Biometric categorization by sensitive attributes (5g)
-   - Real-time biometric identification without exceptions (5h)
+**PHASE 3: Transparency & Literacy (Article 4 & 50)**
+- (Art 50) Chatbots/Deepfakes: Use **ALLOW** but mandate transparency in the reasoning.
+- (Art 4) Organizational deployment without mention of training: Use **WARNING** and cite AI Literacy obligations.
+- Otherwise: If no red flags, use **ALLOW**, risk_score <= 0.3.
 
-2. **High-Risk AI Systems (Article 6 & Annex III):**
-   - If the prompt describes a high-risk use case (employment, education, law enforcement, etc.), it requires WARNING or DENY depending on context
-   - High-risk systems must meet strict requirements - if prompt doesn't indicate compliance, use WARNING
+### EDGE CASES
+- **1:1 Biometric Verification (FaceID):** Use **ALLOW**.
+- **Exam Proctoring (Cheating detection, NO emotion AI):** Use **WARNING** (Annex III).
+- **General Productivity (Summarizing, coding):** Use **ALLOW**.
 
-3. **AI Literacy (Article 4):**
-   - If deploying AI systems, ensure staff training is mentioned - otherwise WARNING
+### OUTPUT SPECIFICATIONS
+- **Language:** The "reason" field MUST be in **Dutch (Nederlands)**.
+- **Alignment:** risk_score must match decision (DENY: 0.9-1.0, WARNING: 0.4-0.8, ALLOW: 0.0-0.3).
+- **Format:** JSON object only. No markdown.
 
-STRICTNESS RULES:
-- **If in doubt, default to "WARNING"** - Better to flag potential issues than miss violations
-- **If clear Article 5 violation, use "DENY"** - Prohibited practices are absolute
-- **If high-risk use case without compliance measures, use "WARNING"**
-- **Only use "ALLOW" if clearly compliant** and no red flags exist
-
-EDGE CASES – USE ALLOW (not WARNING):
-- **1:1 biometric verification only** (e.g. face unlock for a smartphone, single-user device authentication, no identification of third parties, no mass surveillance): This is NOT Article 5(1)(h) real-time biometric identification in publicly accessible spaces. Use ALLOW.
-- **General customer service chatbot** (e.g. e-commerce chatbot that discloses it is AI, transparency required): If the prompt describes only a transparent chatbot without prohibited practices or high-risk use (employment, credit, law enforcement, etc.), use ALLOW. Article 50 transparency does not by itself require WARNING when the use case is low-risk.
-
-EDGE CASE – USE WARNING (not DENY):
-- **Exam proctoring / online exam monitoring**: If the prompt describes monitoring students during online exams for **cheating or behavior detection** (e.g. detecting looking away, multiple faces, unauthorized materials) and does NOT explicitly ask for **emotion or affect analysis** (e.g. stress, anxiety, emotions), treat as **high-risk (WARNING)** under Article 6 & Annex III (education). Use WARNING, not DENY. Reserve DENY under Article 5(1)(f) for prompts that explicitly aim at emotion or affect recognition in education or workplace.
-
-OUTPUT FORMAT:
-Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
+### JSON SCHEMA
 {
+  "internal_analysis": "Mapping: Step 1 (Art 5) -> Step 2 (Annex III) -> Step 3 (Art 50/4).",
   "decision": "ALLOW" | "DENY" | "WARNING",
-  "reason": "Clear, concise explanation (150-200 words). Reference specific article numbers. Explain why the decision was made.",
-  "article_ref": "Article X" or null
+  "reason": "Dutch explanation (150-200 words). Cite specific Articles. Mention mandatory measures (FRIA, human-in-the-loop, etc.).",
+  "article_ref": "Specific Article or Annex reference",
+  "risk_score": number
 }
 
-EXAMPLES:
-- Prompt about emotion recognition for HR → DENY (Article 5(1)(f))
-- Prompt about predictive policing → DENY (Article 5(1)(d))
-- Prompt about CV screening tool → WARNING (High-risk, needs compliance measures)
-- Prompt about creative writing → ALLOW (No violations)
-- Face unlock for smartphone (1:1 verification only) → ALLOW (not mass surveillance)
-- Customer service chatbot with transparency → ALLOW (low-risk, transparent)
-- Exam proctoring (monitoring for cheating, no emotion analysis) → WARNING (high-risk Annex III education), not DENY
-
-Now evaluate the user prompt:`;
+Now, perform the audit:`;
   }
 
   /**
@@ -434,12 +424,18 @@ Now evaluate the user prompt:`;
         articleRefFallback: searchResults[0]?.metadata?.article_ref,
       });
 
-      const response: GatekeeperResponse & { masked_prompt?: string } = {
+      const response: GatekeeperResponse & {
+        masked_prompt?: string;
+        internal_analysis?: string | null;
+        risk_score?: number | null;
+      } = {
         decision: llmResult.decision,
         reason: llmResult.reason,
         article_ref: llmResult.article_ref,
         audit_id: auditId,
         masked_prompt: maskedPrompt,
+        internal_analysis: llmResult.internal_analysis ?? null,
+        risk_score: llmResult.risk_score ?? null,
       };
 
       // Step 7: Performance check

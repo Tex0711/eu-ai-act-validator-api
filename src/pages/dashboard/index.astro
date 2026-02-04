@@ -1,8 +1,14 @@
 ---
 export const prerender = false;
 export const dynamic = 'force-dynamic';
-import { getSupabaseClient, type AuditLog } from '@/lib/supabase/client';
+import { getSupabaseClient, type AuditLog, type AuditFeedback } from '@/lib/supabase/client';
+import { mapAuditToEntry } from '@/types/audit';
+import { LiveFeed } from '@/components/LiveFeed';
 import Layout from '../../layouts/Layout.astro';
+
+function getEnv(name: string): string | undefined {
+  return process.env[name] ?? (import.meta.env && (import.meta.env as Record<string, string>)[name]);
+}
 
 // Force fresh data on every request: no CDN or browser cache
 Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -12,6 +18,8 @@ const _requestTime = Date.now();
 
 // Fetch audit logs from Supabase (runs on every request)
 let auditLogs: AuditLog[] = [];
+let feedbackByAuditId: Record<string, AuditFeedback> = {};
+let dashboardApiKey = getEnv('API_KEY') ?? '';
 let stats = {
   totalChecks: 0,
   violationsBlocked: 0,
@@ -32,6 +40,20 @@ try {
     console.error('Error fetching audit logs:', error);
   } else {
     auditLogs = (data ?? []) as AuditLog[];
+  }
+
+  // Fetch feedback for displayed logs (most recent per audit_id)
+  if (auditLogs.length > 0) {
+    const ids = auditLogs.map((l) => l.id);
+    const { data: feedbackData } = await getSupabaseClient()
+      .from('audit_feedback')
+      .select('*')
+      .in('audit_id', ids)
+      .order('created_at', { ascending: false });
+    const list = (feedbackData ?? []) as AuditFeedback[];
+    list.forEach((f) => {
+      if (!feedbackByAuditId[f.audit_id]) feedbackByAuditId[f.audit_id] = f;
+    });
   }
 
   // Calculate statistics
@@ -68,6 +90,11 @@ try {
 } catch (error) {
   console.error('Dashboard error:', error);
 }
+
+// Map audit logs + feedback to AuditEntry[] for LiveFeed
+const auditEntries = auditLogs.map((log) =>
+  mapAuditToEntry(log, feedbackByAuditId[log.id] ?? null)
+);
 
 // Format relative time
 function formatRelativeTime(dateString: string): string {
@@ -114,6 +141,15 @@ function formatRelativeTime(dateString: string): string {
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Main Content -->
         <div class="lg:col-span-3 space-y-6">
+          <!-- LiveFeed: Recent Audits (React) -->
+          {dashboardApiKey && (
+            <LiveFeed
+              audits={auditEntries}
+              apiKey={dashboardApiKey}
+              client:load
+            />
+          )}
+
           <!-- Global Health Status -->
           <div class={`rounded-lg shadow-sm border-2 p-6 ${
             stats.healthStatus === 'green' 
@@ -216,22 +252,26 @@ function formatRelativeTime(dateString: string): string {
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Decision</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Law Reference</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   {auditLogs.length === 0 ? (
                     <tr>
-                      <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
+                      <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
                         No audit logs found. Start using the API to see compliance checks here.
                       </td>
                     </tr>
                   ) : (
-                    auditLogs.map((log) => (
+                    auditLogs.map((log) => {
+                      const feedback = feedbackByAuditId[log.id];
+                      return (
                       <tr 
                         key={log.id} 
                         class="hover:bg-gray-50"
                         data-response-time={log.response_time_ms}
+                        data-audit-id={log.id}
                       >
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatRelativeTime(log.created_at)}
@@ -253,6 +293,43 @@ function formatRelativeTime(dateString: string): string {
                         <td class="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
                           {log.reason}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm" id={`review-cell-${log.id}`}>
+                          {feedback ? (
+                            feedback.is_correct ? (
+                              <span class="inline-flex items-center text-green-600" title="Beoordeeld: Correct">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                <span class="ml-1">Correct</span>
+                              </span>
+                            ) : (
+                              <span class="inline-flex flex-col text-red-600" title="Beoordeeld: Incorrect">
+                                <span class="inline-flex items-center">
+                                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
+                                  <span class="ml-1">Incorrect</span>
+                                </span>
+                                {feedback.corrected_decision && (
+                                  <span class="text-xs text-gray-600 mt-0.5">→ {feedback.corrected_decision}</span>
+                                )}
+                              </span>
+                            )
+                          ) : (
+                            <span class="review-buttons inline-flex gap-2">
+                              <button
+                                type="button"
+                                onclick={`submitCorrect('${log.id}')`}
+                                class="text-green-600 hover:text-green-800 text-sm font-medium"
+                              >
+                                Correct
+                              </button>
+                              <button
+                                type="button"
+                                onclick={`showIncorrectForm('${log.id}')`}
+                                class="text-red-600 hover:text-red-800 text-sm font-medium"
+                              >
+                                Incorrect
+                              </button>
+                            </span>
+                          )}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
                             onclick={`openModal('${log.id}')`}
@@ -262,7 +339,7 @@ function formatRelativeTime(dateString: string): string {
                           </button>
                         </td>
                       </tr>
-                    ))
+                    ); })
                   )}
                 </tbody>
               </table>
@@ -339,9 +416,41 @@ function formatRelativeTime(dateString: string): string {
       </div>
     </div>
 
-    <script define:vars={{ auditLogs: JSON.stringify(auditLogs), stats: JSON.stringify(stats) }} is:inline>
+    <!-- Modal for Incorrect feedback form -->
+    <div id="incorrectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 md:max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Feedback: Incorrect</h3>
+          <p class="text-sm text-gray-500 mb-4">Geef de juiste beslissing en reden op.</p>
+          <form id="incorrectForm" onsubmit="return submitIncorrect(event)">
+            <input type="hidden" id="incorrectAuditId" name="audit_id" value="" />
+            <div class="mb-4">
+              <label for="corrected_decision" class="block text-sm font-medium text-gray-700 mb-1">Juiste beslissing</label>
+              <select id="corrected_decision" name="corrected_decision" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="">— Kies —</option>
+                <option value="ALLOW">ALLOW</option>
+                <option value="DENY">DENY</option>
+                <option value="WARNING">WARNING</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label for="corrected_reason" class="block text-sm font-medium text-gray-700 mb-1">Reden (Nederlands)</label>
+              <textarea id="corrected_reason" name="corrected_reason" required rows="4" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Waarom was de oorspronkelijke beslissing incorrect?"></textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button type="button" onclick="closeIncorrectModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Annuleren</button>
+              <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Versturen</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script define:vars={{ auditLogs: JSON.stringify(auditLogs), stats: JSON.stringify(stats), feedbackByAuditId: JSON.stringify(feedbackByAuditId), dashboardApiKey }} is:inline>
       const auditLogsData = JSON.parse(auditLogs);
       const statsData = JSON.parse(stats);
+      const feedbackByAuditIdData = typeof feedbackByAuditId === 'string' ? JSON.parse(feedbackByAuditId) : (feedbackByAuditId || {});
+      const apiKey = typeof dashboardApiKey === 'string' ? dashboardApiKey : '';
 
       window.exportToCSV = function() {
         let csv = 'Timestamp,Decision,Article Reference,Reason,Response Time (ms),Prompt\n';
@@ -409,13 +518,68 @@ function formatRelativeTime(dateString: string): string {
         }
         html += '<div><p class="text-sm font-medium text-gray-500 mb-2">Legal Reasoning</p>';
         html += '<div class="bg-blue-50 rounded-md p-4"><p class="text-sm text-gray-900 whitespace-pre-wrap">' + reason + '</p></div></div>';
-        
+        var fb = feedbackByAuditIdData[log.id];
+        html += '<div class="border-t pt-4 mt-4"><p class="text-sm font-medium text-gray-500 mb-2">Review</p>';
+        if (fb) {
+          if (fb.is_correct) {
+            html += '<p class="text-sm text-green-600">Beoordeeld: Correct</p>';
+          } else {
+            html += '<p class="text-sm text-red-600">Beoordeeld: Incorrect</p>';
+            if (fb.corrected_decision) html += '<p class="text-sm text-gray-700 mt-1">Juiste beslissing: ' + escapeHtml(fb.corrected_decision) + '</p>';
+            if (fb.corrected_reason) html += '<p class="text-sm text-gray-600 mt-1 whitespace-pre-wrap">' + escapeHtml(fb.corrected_reason) + '</p>';
+          }
+        } else {
+          html += '<div class="flex gap-2"><button type="button" onclick="submitCorrect(\'' + escapeHtml(log.id) + '\'); closeModal();" class="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200">Correct</button>';
+          html += '<button type="button" onclick="closeModal(); showIncorrectForm(\'' + escapeHtml(log.id) + '\');" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200">Incorrect</button></div>';
+        }
+        html += '</div>';
         content.innerHTML = html;
         modal.classList.remove('hidden');
       };
 
       window.closeModal = function() {
         document.getElementById('auditModal').classList.add('hidden');
+      };
+
+      window.closeIncorrectModal = function() {
+        document.getElementById('incorrectModal').classList.add('hidden');
+      };
+
+      window.submitCorrect = function(auditId) {
+        if (!apiKey) { alert('API-sleutel niet geconfigureerd voor dashboard.'); return; }
+        fetch('/api/v1/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ audit_id: auditId, is_correct: true })
+        }).then(function(r) {
+          if (r.ok) location.reload();
+          else r.json().then(function(d) { alert(d.message || d.error || 'Fout bij opslaan'); });
+        }).catch(function() { alert('Netwerkfout'); });
+      };
+
+      window.showIncorrectForm = function(auditId) {
+        document.getElementById('incorrectAuditId').value = auditId;
+        document.getElementById('corrected_decision').value = '';
+        document.getElementById('corrected_reason').value = '';
+        document.getElementById('incorrectModal').classList.remove('hidden');
+      };
+
+      window.submitIncorrect = function(event) {
+        event.preventDefault();
+        var auditId = document.getElementById('incorrectAuditId').value;
+        var corrected_decision = document.getElementById('corrected_decision').value;
+        var corrected_reason = document.getElementById('corrected_reason').value.trim();
+        if (!apiKey) { alert('API-sleutel niet geconfigureerd voor dashboard.'); return false; }
+        if (!corrected_decision || !corrected_reason) { alert('Vul juiste beslissing en reden in.'); return false; }
+        fetch('/api/v1/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ audit_id: auditId, is_correct: false, corrected_decision: corrected_decision, corrected_reason: corrected_reason })
+        }).then(function(r) {
+          if (r.ok) { closeIncorrectModal(); location.reload(); }
+          else r.json().then(function(d) { alert(d.message || d.error || 'Fout bij opslaan'); });
+        }).catch(function() { alert('Netwerkfout'); });
+        return false;
       };
 
       window.generateTrainingAlert = function() {
@@ -446,10 +610,9 @@ function formatRelativeTime(dateString: string): string {
 
       // Close modal on outside click
       window.onclick = function(event) {
-        const modal = document.getElementById('auditModal');
-        if (event.target === modal) {
-          window.closeModal();
-        }
+        var target = event.target;
+        if (target.id === 'auditModal') window.closeModal();
+        if (target.id === 'incorrectModal') window.closeIncorrectModal();
       };
     </script>
   </div>

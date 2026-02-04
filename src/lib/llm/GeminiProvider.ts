@@ -13,15 +13,33 @@ const API_KEYS = (GEMINI_KEY ?? '')
   .map((k: string) => k.trim())
   .filter(Boolean);
 
+/** Strip markdown code blocks (e.g. ```json ... ```) and extract JSON for parsing */
+function extractJson(text: string): string {
+  const trimmed = text.trim();
+  const codeBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlock) return codeBlock[1].trim();
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) return trimmed.slice(firstBrace, lastBrace + 1);
+  return trimmed;
+}
+
 function parseJsonResponse(text: string): Partial<LLMEvaluateResult> {
   try {
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
-    const parsed = JSON.parse(jsonText.trim());
+    const jsonText = extractJson(text);
+    const parsed = JSON.parse(jsonText);
+    const decision = parsed.decision;
+    const validDecision = decision === 'ALLOW' || decision === 'DENY' || decision === 'WARNING';
+    let riskScore: number | null = null;
+    if (typeof parsed.risk_score === 'number' && !Number.isNaN(parsed.risk_score)) {
+      riskScore = Math.max(0, Math.min(1, parsed.risk_score));
+    }
     return {
-      decision: parsed.decision || 'WARNING',
-      reason: parsed.reason || 'Unable to determine compliance status',
+      decision: validDecision ? decision : 'WARNING',
+      reason: typeof parsed.reason === 'string' && parsed.reason ? parsed.reason : 'Unable to determine compliance status',
       article_ref: parsed.article_ref ?? undefined,
+      internal_analysis: typeof parsed.internal_analysis === 'string' ? parsed.internal_analysis : null,
+      risk_score: riskScore,
     };
   } catch {
     return {
@@ -66,6 +84,8 @@ export class GeminiProvider implements LLMProvider {
           decision: (parsed.decision as 'ALLOW' | 'DENY' | 'WARNING') ?? 'WARNING',
           reason: parsed.reason ?? 'Compliance evaluation completed',
           article_ref: parsed.article_ref ?? input.articleRefFallback,
+          internal_analysis: parsed.internal_analysis ?? null,
+          risk_score: parsed.risk_score ?? null,
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));

@@ -12,6 +12,8 @@ export interface LLMEvaluateResult {
   decision: 'ALLOW' | 'DENY' | 'WARNING';
   reason: string;
   article_ref: string | undefined;
+  internal_analysis?: string | null;
+  risk_score?: number | null;
 }
 
 export interface LLMProvider {
